@@ -8,8 +8,11 @@
 start_link() ->
 	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
+% TODO put create table under table supervisor
+% it should be in charge of getting the list of 
+% available tables for players to join
 create_table() ->
-    ChildId = make_ref(),
+    ChildId = now(),
     supervisor:start_child(?MODULE, {ChildId, {holdem, start_link, []}, transient, 5000, worker, [holdem]}).
 
 init([]) ->
