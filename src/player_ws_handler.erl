@@ -7,18 +7,22 @@
 -export([websocket_info/3]).
 -export([websocket_terminate/3]).
 
--record(state, {
-}).
+-record(state, { player_id }).
 
 init(_, _, _) ->
 	{upgrade, protocol, cowboy_websocket}.
 
 websocket_init(_, Req, _Opts) ->
+    io:format("Player connected"),
 	Req2 = cowboy_req:compact(Req),
-	{ok, Req2, #state{}}.
+    {ok, Req2, #state{player_id=make_ref()}}.
 
+websocket_handle({text, <<"create_table">>}, Req, State) ->
+    {ok, Pid} = cardgames_sup:create_table(),
+    io:format("Created table Pid: ~p~n", [Pid]),
+    {reply, {text, list_to_binary("Created table with pid"++erlang:pid_to_list(Pid))}, Req, State};
 websocket_handle({text, Data}, Req, State) ->
-    io:format("Got message: ~p~n", [Data]),
+    io:format("Got message: ~p from~p~n", [Data, State#state.player_id]),
 	{reply, {text, Data}, Req, State};
 websocket_handle({binary, Data}, Req, State) ->
 	{reply, {binary, Data}, Req, State};
