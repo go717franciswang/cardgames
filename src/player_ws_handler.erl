@@ -19,7 +19,7 @@ websocket_init(_, Req, _Opts) ->
     {ok, Req2, #state{}}.
 
 websocket_handle({text, <<"create_table">>}, Req, State) ->
-    {ok, Pid} = cardgames_sup:create_table(),
+    {ok, Pid} = tables_sup:create_table(),
     holdem:join(Pid, self()),
     io:format("Created table Pid: ~p~n", [Pid]),
     {reply, {text, list_to_binary("Created table with pid"++erlang:pid_to_list(Pid))}, Req, State};
