@@ -20,9 +20,16 @@ websocket_init(_, Req, _Opts) ->
 
 websocket_handle({text, <<"create_table">>}, Req, State) ->
     {ok, Pid} = tables_sup:create_table(),
-    holdem:join(Pid, self()),
     io:format("Created table Pid: ~p~n", [Pid]),
-    {reply, {text, list_to_binary("Created table with pid"++erlang:pid_to_list(Pid))}, Req, State};
+    holdem:join(Pid, self()),
+    {reply, {text, "Created table with pid"++erlang:pid_to_list(Pid)}, Req, State};
+websocket_handle({text, <<"list_tables">>}, Req, State) ->
+    Tables = tables_sup:list_tables(),
+    {reply, {text, io_lib:format("~p", [Tables])}, Req, State};
+websocket_handle({text, <<"join_table ", Id/binary>>}, Req, State) ->
+    Pid = tables_sup:id_to_pid(erlang:binary_to_integer(Id)),
+    holdem:join(Pid, self()),
+    {reply, {text, "Joined table with pid"++erlang:pid_to_list(Pid)}, Req, State};
 websocket_handle({text, Data}, Req, State) ->
     io:format("Got message: ~p~n", [Data]),
 	{reply, {text, Data}, Req, State};

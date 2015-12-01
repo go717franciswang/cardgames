@@ -3,7 +3,7 @@
 
 -export([start_link/0]).
 -export([init/1]).
--export([create_table/0]).
+-export([create_table/0, list_tables/0, id_to_pid/1]).
 
 start_link() ->
 	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
@@ -13,6 +13,17 @@ create_table() ->
     supervisor:start_child(?MODULE, {ChildId, 
             {holdem, start_link, []}, 
             transient, 5000, worker, [holdem]}).
+
+list_tables() ->
+    Children = supervisor:which_children(?MODULE),
+    lists:map(fun({Id, _Child, _Type, _Modules}) -> Id end, Children).
+
+id_to_pid(Id) ->
+    Children = supervisor:which_children(?MODULE),
+    case lists:keyfind(Id, 1, Children) of
+        {Id, Child, _Type, _Modules} -> Child;
+        false -> {error, game_does_not_exist}
+    end.
 
 init([]) ->
 	Procs = [],
