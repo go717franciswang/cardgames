@@ -12,7 +12,7 @@ start_link() ->
 % it should be in charge of getting the list of 
 % available tables for players to join
 create_table() ->
-    ChildId = now(),
+    ChildId = erlang:unique_integer(),
     supervisor:start_child(?MODULE, {ChildId, {holdem, start_link, []}, transient, 5000, worker, [holdem]}).
 
 init([]) ->

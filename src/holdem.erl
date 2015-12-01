@@ -10,7 +10,6 @@
 -export([waiting_for_players/2]).
 -export([game_in_progess/2]).
 -export([handle_event/3]).
--export([state_name/3]).
 -export([handle_sync_event/4]).
 -export([handle_info/3]).
 -export([terminate/3]).
@@ -59,9 +58,6 @@ game_in_progess({fold, _PlayerId}, StateData) ->
 
 handle_event(_Event, StateName, StateData) ->
 	{next_state, StateName, StateData}.
-
-state_name(_Event, _From, StateData) ->
-	{reply, ignored, state_name, StateData}.
 
 handle_sync_event(_Event, _From, StateName, StateData) ->
 	{reply, ignored, StateName, StateData}.
