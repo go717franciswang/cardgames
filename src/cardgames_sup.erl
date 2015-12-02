@@ -8,5 +8,8 @@ start_link() ->
 	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
-    Procs = [{tables_sup, {tables_sup, start_link, []}, permanent, 5000, supervisor, [tables_sup]}],
+    Procs = [
+        {tables_sup, {tables_sup, start_link, []}, permanent, 5000, supervisor, [tables_sup]},
+        {players_sup, {players_sup, start_link, []}, permanent, 5000, supervisor, [players_sup]}
+    ],
 	{ok, {{one_for_one, 1, 5}, Procs}}.

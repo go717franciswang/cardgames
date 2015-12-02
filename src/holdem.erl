@@ -24,22 +24,20 @@
 start_link() ->
 	gen_fsm:start_link(?MODULE, [], []).
 
-join(Pid, PlayerId) ->
+join(Pid, PlayerPid) ->
     io:format("New player has joined~n"),
-    gen_fsm:send_event(Pid, {join, PlayerId}).
+    gen_fsm:send_event(Pid, {join, PlayerPid}).
 
 %% gen_fsm.
 
 init([]) ->
 	{ok, waiting_for_players, #state{}}.
 
-waiting_for_players({join, PlayerId}, StateData) ->
-    Players = [PlayerId | StateData#state.players],
+waiting_for_players({join, PlayerPid}, StateData) ->
+    Players = [PlayerPid | StateData#state.players],
     lists:foreach(
         fun(Pid) -> 
-                Msg = {reply, {text, "New player "++ erlang:pid_to_list(PlayerId) ++" entered"}},
-                io:format("Sending message (~p) to socket", [Msg]),
-                Pid ! Msg
+                gen_fsm:send_event(Pid, {new_player, PlayerPid})
         end, Players),
     {next_state, waiting_for_players, #state{players=Players}};
 waiting_for_players(start, StateData) ->

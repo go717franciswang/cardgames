@@ -2,7 +2,7 @@
 -behaviour(gen_fsm).
 
 %% API.
--export([start_link/0]).
+-export([start_link/0, create_table/1, join_table/2]).
 
 %% gen_fsm.
 -export([init/1]).
@@ -13,7 +13,7 @@
 -export([terminate/3]).
 -export([code_change/4]).
 
--record(state, {
+-record(state, {game_pid
 }).
 
 %% API.
@@ -22,16 +22,29 @@
 start_link() ->
 	gen_fsm:start_link(?MODULE, [], []).
 
+create_table(Pid) ->
+    gen_fsm:send_event(Pid, create_table).
+
+join_table(Pid, TableId) ->
+    gen_fsm:send_event(Pid, {join_table, TableId}).
+
 %% gen_fsm.
 
 init([]) ->
 	{ok, lobby, #state{}}.
 
 lobby(create_table, StateData) ->
-	{next_state, in_game, StateData};
-lobby({join_table, _TableId}, StateData) ->
-	{next_state, in_game, StateData}.
+    {ok, Pid} = tables_sup:create_table(),
+    holdem:join(Pid, self()),
+	{next_state, in_game, StateData#state{game_pid=Pid}};
+lobby({join_table, TableId}, StateData) ->
+    Pid = tables_sup:id_to_pid(TableId),
+    holdem:join(Pid, self()),
+	{next_state, in_game, StateData#state{game_pid=Pid}}.
 
+in_game({new_player, Pid}, StateData) ->
+    io:format("new player: ~p", [Pid]),
+    {next_state, in_game, StateData};
 in_game(bet, StateData) ->
 	{next_state, in_game, StateData};
 in_game(check, StateData) ->
