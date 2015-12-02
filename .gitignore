@@ -12,3 +12,4 @@ rel/
 _rel/
 .erlang.mk/
 *.swp
+logs/
