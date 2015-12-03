@@ -3,11 +3,11 @@
 
 %% API.
 -export([start_link/0]).
--export([join/2]).
+-export([join/2, start_game/1]).
 
 %% gen_fsm.
 -export([init/1]).
--export([waiting_for_players/2]).
+-export([waiting_for_players/2, waiting_for_players/3]).
 -export([game_in_progess/2]).
 -export([handle_event/3]).
 -export([handle_sync_event/4]).
@@ -28,6 +28,9 @@ join(Pid, PlayerPid) ->
     io:format("New player has joined~n"),
     gen_fsm:send_event(Pid, {join, PlayerPid}).
 
+start_game(Pid) ->
+    gen_fsm:sync_send_event(Pid, start).
+
 %% gen_fsm.
 
 init([]) ->
@@ -39,9 +42,9 @@ waiting_for_players({join, PlayerPid}, StateData) ->
         fun(Pid) -> 
                 gen_fsm:send_event(Pid, {new_player, PlayerPid})
         end, Players),
-    {next_state, waiting_for_players, #state{players=Players}};
-waiting_for_players(start, StateData) ->
-    {next_state, game_in_progess, StateData}.
+    {next_state, waiting_for_players, #state{players=Players}}.
+waiting_for_players(start, _From, StateData) ->
+    {reply, {ok, game_started}, game_in_progess, StateData}.
 
 game_in_progess({bet, _PlayerId}, StateData) ->
     {next_state, game_in_progess, StateData};
