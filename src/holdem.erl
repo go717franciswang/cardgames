@@ -15,7 +15,7 @@
 -export([terminate/3]).
 -export([code_change/4]).
 
--record(state, {players=[]
+-record(state, {players=[], deck
 }).
 
 %% API.
@@ -44,7 +44,8 @@ waiting_for_players({join, PlayerPid}, StateData) ->
         end, Players),
     {next_state, waiting_for_players, #state{players=Players}}.
 waiting_for_players(start, _From, StateData) ->
-    {reply, {ok, game_started}, game_in_progess, StateData}.
+    {ok, Deck} = deck:start_link(),
+    {reply, {ok, game_started}, game_in_progess, StateData#state{deck=Deck}}.
 
 game_in_progess({bet, _PlayerId}, StateData) ->
     {next_state, game_in_progess, StateData};
