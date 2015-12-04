@@ -3,7 +3,7 @@
 
 %% API.
 -export([start_link/0]).
--export([show_deck/1]).
+-export([show_deck/1, shuffle/1]).
 
 %% gen_server.
 -export([init/1]).
@@ -26,6 +26,9 @@ start_link() ->
 show_deck(Pid) ->
     gen_server:call(Pid, show_deck).
 
+shuffle(Pid) ->
+    gen_server:call(Pid, shuffle).
+
 %% gen_server.
 
 init([]) ->
@@ -37,7 +40,8 @@ init([]) ->
 handle_call(show_deck, _From, State) ->
     {reply, State#state.cards, State};
 handle_call(shuffle, _From, State) ->
-	{reply, ignored, State};
+    NewCards = shuffle_cards(State#state.cards),
+	{reply, ok, State#state{cards=NewCards}};
 handle_call(_Request, _From, State) ->
 	{reply, ignored, State}.
 
@@ -52,3 +56,8 @@ terminate(_Reason, _State) ->
 
 code_change(_OldVsn, State, _Extra) ->
 	{ok, State}.
+
+shuffle_cards(Items) ->
+    % http://stackoverflow.com/a/8820501/3678068
+    [X || {_,X} <- lists:sort([{random:uniform(), Item} || Item <- Items])].
+
