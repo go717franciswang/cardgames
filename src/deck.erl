@@ -35,7 +35,8 @@ init([]) ->
     Suits = [club, diamond, heart, spade],
     Ranks = [ace, two, three, four, five, six, seven, eight, nine, ten, jack, queen, king],
     Cards = [#card{suit=X, rank=Y} || X <- Suits, Y <- Ranks],
-	{ok, #state{cards=Cards}}.
+    ShuffledCards = shuffle_cards(Cards),
+	{ok, #state{cards=ShuffledCards}}.
 
 handle_call(show_deck, _From, State) ->
     {reply, State#state.cards, State};

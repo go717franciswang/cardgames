@@ -10,8 +10,8 @@ shuffle_test() ->
     {ok, Deck} = deck:start_link(),
     Cards = deck:show_deck(Deck),
     deck:shuffle(Deck),
-    SuffledCards = deck:show_deck(Deck),
-    ?assertNotEqual(Cards, SuffledCards).
+    ShuffledCards = deck:show_deck(Deck),
+    ?assertNotEqual(Cards, ShuffledCards).
 
 
 
