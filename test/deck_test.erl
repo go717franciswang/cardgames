@@ -13,6 +13,11 @@ shuffle_test() ->
     ShuffledCards = deck:show_deck(Deck),
     ?assertNotEqual(Cards, ShuffledCards).
 
+draw_cards_test() ->
+    {ok, Deck} = deck:start_link(),
+    Cards = deck:draw_cards(Deck, 5),
+    ?assertEqual(length(Cards), 5).
+
 
 
 

@@ -3,7 +3,7 @@
 
 %% API.
 -export([start_link/0]).
--export([show_deck/1, shuffle/1]).
+-export([show_deck/1, shuffle/1, draw_cards/2]).
 
 %% gen_server.
 -export([init/1]).
@@ -29,6 +29,9 @@ show_deck(Pid) ->
 shuffle(Pid) ->
     gen_server:call(Pid, shuffle).
 
+draw_cards(Pid, Count) ->
+    gen_server:call(Pid, {draw_cards, Count}).
+
 %% gen_server.
 
 init([]) ->
@@ -43,6 +46,9 @@ handle_call(show_deck, _From, State) ->
 handle_call(shuffle, _From, State) ->
     NewCards = shuffle_cards(State#state.cards),
 	{reply, ok, State#state{cards=NewCards}};
+handle_call({draw_cards, Count}, _From, State) ->
+    {DrawnCards, NewCards} = lists:split(Count, State#state.cards),
+    {reply, DrawnCards, State#state{cards=NewCards}};
 handle_call(_Request, _From, State) ->
 	{reply, ignored, State}.
 
