@@ -37,7 +37,7 @@ init([]) ->
 	{ok, waiting_for_players, #state{}}.
 
 waiting_for_players({join, PlayerPid}, StateData) ->
-    Players = [PlayerPid | StateData#state.players],
+    Players = StateData#state.players ++ [PlayerPid],
     lists:foreach(
         fun(Pid) -> 
                 gen_fsm:send_event(Pid, {new_player, PlayerPid})
