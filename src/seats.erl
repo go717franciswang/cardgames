@@ -3,7 +3,8 @@
 
 %% API.
 -export([start_link/1]).
--export([join/2, show_players/1, get_dealer/1, rotate_dealer_button/1]).
+-export([join/2, show_players/1, get_dealer/1, rotate_dealer_button/1, get_blinds/1,
+    get_preflop_actor/1, get_flop_actor/1]).
 
 %% gen_server.
 -export([init/1]).
@@ -27,6 +28,9 @@ join(Pid, Player) -> gen_server:call(Pid, {join, Player}).
 show_players(Pid) -> gen_server:call(Pid, show_players).
 get_dealer(Pid) -> gen_server:call(Pid, get_dealer).
 rotate_dealer_button(Pid) -> gen_server:call(Pid, rotate_dealer_button).
+get_blinds(Pid) -> gen_server:call(Pid, get_blinds).
+get_preflop_actor(Pid) -> gen_server:call(Pid, get_preflop_actor).
+get_flop_actor(Pid) -> gen_server:call(Pid, get_flop_actor).
 
 %% gen_server.
 
@@ -52,6 +56,16 @@ handle_call(rotate_dealer_button, _From, State) ->
 handle_call(get_dealer, _From, #state{seats=Seats, dealer_button_pos=DealerPos}=State) ->
     Dealer = lists:keyfind(DealerPos, #seat.position, Seats),
     {reply, Dealer, State};
+handle_call(get_blinds, _From, State) ->
+    Seats = State#state.seats,
+    {Front, Back} = lists:split(State#state.dealer_button_pos, Seats),
+    SearchSeats = lists:concat([Back, Front]),
+    ActiveSeats = lists:filter(fun(Seat) -> Seat#seat.player /= undefined end, SearchSeats),
+    Reply = case length(ActiveSeats) of
+        2 -> [B,S] = ActiveSeats, {S,B};
+        _ -> [S,B|_] = ActiveSeats, {S,B}
+    end,
+    {reply, Reply, State};
 handle_call(_Request, _From, State) ->
 	{reply, ignored, State}.
 
