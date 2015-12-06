@@ -56,3 +56,22 @@ get_blinds_test() ->
     ?assertEqual(S#seat.player, P2),
     ?assertEqual(B#seat.player, P3).
 
+place_bet_test() ->
+    {ok, Seats} = seats:start_link(6),
+    seats:join(Seats, dummy_player1),
+    seats:join(Seats, dummy_player2),
+    [S1, S2] = seats:show_active_seats(Seats),
+
+    seats:place_bet(Seats, S1, 1),
+    seats:place_bet(Seats, S2, 2),
+
+    [NS1, NS2] = seats:show_active_seats(Seats),
+    ?assertEqual(NS1#seat.bet, 1),
+    ?assertEqual(NS2#seat.bet, 2),
+    ?assertEqual(S1#seat.money - NS1#seat.money, 1),
+    ?assertEqual(S2#seat.money - NS2#seat.money, 2).
+
+
+
+
+

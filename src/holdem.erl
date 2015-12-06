@@ -40,8 +40,14 @@ init([]) ->
 waiting_for_players({join, Player}, StateData) ->
     seats:join(StateData#state.seats, Player),
     {next_state, waiting_for_players, StateData}.
-waiting_for_players(start, _From, StateData) ->
+waiting_for_players(start, _From, #state{seats=Seats}=StateData) ->
     {ok, Deck} = deck:start_link(),
+    seats:rotate_dealer_button(Seats),
+    {SmallBlind, BigBlind} = seats:get_blinds(Seats),
+    seats:place_bet(Seats, SmallBlind, 0.05),
+    seats:place_bet(Seats, BigBlind, 0.10),
+
+
     {reply, {ok, game_started}, game_in_progess, StateData#state{deck=Deck}}.
 
 game_in_progess({bet, _PlayerId}, StateData) ->

@@ -3,8 +3,9 @@
 
 %% API.
 -export([start_link/1]).
--export([join/2, show_players/1, get_dealer/1, rotate_dealer_button/1, get_blinds/1,
-    get_preflop_actor/1, get_flop_actor/1]).
+-export([join/2, show_players/1, show_active_seats/1, get_dealer/1, 
+        rotate_dealer_button/1, get_blinds/1, get_preflop_actors/1, 
+        get_flop_actors/1, place_bet/3]).
 
 %% gen_server.
 -export([init/1]).
@@ -26,11 +27,13 @@ start_link(SeatCount) ->
 
 join(Pid, Player) -> gen_server:call(Pid, {join, Player}).
 show_players(Pid) -> gen_server:call(Pid, show_players).
+show_active_seats(Pid) -> gen_server:call(Pid, show_active_seats).
 get_dealer(Pid) -> gen_server:call(Pid, get_dealer).
 rotate_dealer_button(Pid) -> gen_server:call(Pid, rotate_dealer_button).
 get_blinds(Pid) -> gen_server:call(Pid, get_blinds).
-get_preflop_actor(Pid) -> gen_server:call(Pid, get_preflop_actor).
-get_flop_actor(Pid) -> gen_server:call(Pid, get_flop_actor).
+get_preflop_actors(Pid) -> gen_server:call(Pid, get_preflop_actors).
+get_flop_actors(Pid) -> gen_server:call(Pid, get_flop_actors).
+place_bet(Pid, Seat, BetAmount) -> gen_server:call(Pid, {place_bet, Seat, BetAmount}).
 
 %% gen_server.
 
@@ -40,6 +43,8 @@ init([SeatCount]) ->
 
 handle_call(show_players, _From, State) ->
     {reply, [X#seat.player || X <- State#state.seats], State};
+handle_call(show_active_seats, _From, State) ->
+    {reply, [X || X <- State#state.seats, X#seat.player /= undefined], State};
 handle_call({join, Player}, _From, State) ->
     Seats = State#state.seats,
     EmptySeat = get_empty_seat(Seats),
@@ -66,6 +71,10 @@ handle_call(get_blinds, _From, State) ->
         _ -> [S,B|_] = ActiveSeats, {S,B}
     end,
     {reply, Reply, State};
+handle_call({place_bet, #seat{position=Pos,bet=Bet,money=Money}=Seat, BetAmount}, _From, State) ->
+    NewSeat = Seat#seat{bet=Bet+BetAmount, money=Money-BetAmount},
+    NewSeats = lists:keystore(Pos, #seat.position, State#state.seats, NewSeat),
+    {reply, ok, State#state{seats=NewSeats}};
 handle_call(_Request, _From, State) ->
 	{reply, ignored, State}.
 
