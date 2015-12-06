@@ -41,6 +41,7 @@ get_blinds_heads_up_test() ->
     {SmallBlind,BigBlind} = seats:get_blinds(Seats),
 
     % in heads-up poker, by convention, the dealer is also the small blind
+    % http://www.holdemreview.com/texas-holdem-heads-up-rules/
     ?assertEqual(Dealer, SmallBlind),
     ?assertNotEqual(SmallBlind, BigBlind).
 
