@@ -15,7 +15,7 @@
 -export([terminate/3]).
 -export([code_change/4]).
 
--record(state, {players=[], deck
+-record(state, {deck, seats
 }).
 
 %% API.
@@ -34,15 +34,12 @@ start_game(Pid) ->
 %% gen_fsm.
 
 init([]) ->
-	{ok, waiting_for_players, #state{}}.
+    Seats = seats:start_link(6),
+	{ok, waiting_for_players, #state{seats=Seats}}.
 
-waiting_for_players({join, PlayerPid}, StateData) ->
-    Players = StateData#state.players ++ [PlayerPid],
-    lists:foreach(
-        fun(Pid) -> 
-                gen_fsm:send_event(Pid, {new_player, PlayerPid})
-        end, Players),
-    {next_state, waiting_for_players, #state{players=Players}}.
+waiting_for_players({join, Player}, StateData) ->
+    seats:join(StateData#state.seats, Player),
+    {next_state, waiting_for_players, StateData}.
 waiting_for_players(start, _From, StateData) ->
     {ok, Deck} = deck:start_link(),
     {reply, {ok, game_started}, game_in_progess, StateData#state{deck=Deck}}.

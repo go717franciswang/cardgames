@@ -1,0 +1,2 @@
+-record(card, {suit, rank}).
+-record(seat, {position, player, money, bet=0}).

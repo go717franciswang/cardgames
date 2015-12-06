@@ -13,7 +13,7 @@
 -export([terminate/3]).
 -export([code_change/4]).
 
--record(state, {game_pid
+-record(state, {game_pid, money
 }).
 
 %% API.
@@ -39,11 +39,11 @@ init([]) ->
 lobby(create_table, _From, StateData) ->
     {ok, Pid} = tables_sup:create_table(),
     holdem:join(Pid, self()),
-	{reply, {ok, Pid}, in_game, StateData#state{game_pid=Pid}}.
+	{reply, {ok, Pid}, in_game, StateData#state{game_pid=Pid, money=10}}.
 lobby({join_table, TableId}, StateData) ->
     Pid = tables_sup:id_to_pid(TableId),
     holdem:join(Pid, self()),
-	{next_state, in_game, StateData#state{game_pid=Pid}}.
+	{next_state, in_game, StateData#state{game_pid=Pid, money=10}}.
 
 in_game(start_game, StateData) ->
     Reply = holdem:start_game(StateData#state.game_pid),

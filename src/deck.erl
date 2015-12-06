@@ -15,7 +15,7 @@
 
 -record(state, {cards=[]
 }).
--include("card.hrl").
+-include("records.hrl").
 
 %% API.
 

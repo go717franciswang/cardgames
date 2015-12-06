@@ -1,1 +1,0 @@
--record(card, {suit, rank}).
