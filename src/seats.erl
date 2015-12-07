@@ -4,8 +4,8 @@
 %% API.
 -export([start_link/1]).
 -export([join/2, show_players/1, show_active_seats/1, get_dealer/1, 
-        rotate_dealer_button/1, get_blinds/1, get_preflop_actors/1, 
-        get_flop_actors/1, place_bet/3]).
+        rotate_dealer_button/1, get_blinds/1, get_preflop_actor/1, 
+        get_flop_actor/1, place_bet/3, deal_card/3, get_next_seat/2]).
 
 %% gen_server.
 -export([init/1]).
@@ -31,9 +31,11 @@ show_active_seats(Pid) -> gen_server:call(Pid, show_active_seats).
 get_dealer(Pid) -> gen_server:call(Pid, get_dealer).
 rotate_dealer_button(Pid) -> gen_server:call(Pid, rotate_dealer_button).
 get_blinds(Pid) -> gen_server:call(Pid, get_blinds).
-get_preflop_actors(Pid) -> gen_server:call(Pid, get_preflop_actors).
-get_flop_actors(Pid) -> gen_server:call(Pid, get_flop_actors).
+get_preflop_actor(Pid) -> gen_server:call(Pid, get_preflop_actor).
+get_flop_actor(Pid) -> gen_server:call(Pid, get_flop_actor).
 place_bet(Pid, Seat, BetAmount) -> gen_server:call(Pid, {place_bet, Seat, BetAmount}).
+deal_card(Pid, Seat, Card) -> gen_server:call(Pid, {deal_card, Seat, Card}).
+get_next_seat(Pid, Seat) -> gen_server:call(Pid, {get_next_seat, Seat}).
 
 %% gen_server.
 
@@ -44,10 +46,10 @@ init([SeatCount]) ->
 handle_call(show_players, _From, State) ->
     {reply, [X#seat.player || X <- State#state.seats], State};
 handle_call(show_active_seats, _From, State) ->
-    {reply, [X || X <- State#state.seats, X#seat.player /= undefined], State};
+    {reply, get_active_seats_(State), State};
 handle_call({join, Player}, _From, State) ->
     Seats = State#state.seats,
-    EmptySeat = get_empty_seat(Seats),
+    EmptySeat = get_empty_seat_(State),
     NewSeat = EmptySeat#seat{player=Player, money=10},
     NewSeats = lists:keystore(NewSeat#seat.position, #seat.position, Seats, NewSeat),
     {reply, ok, State#state{seats=NewSeats}};
@@ -61,20 +63,20 @@ handle_call(rotate_dealer_button, _From, State) ->
 handle_call(get_dealer, _From, #state{seats=Seats, dealer_button_pos=DealerPos}=State) ->
     Dealer = lists:keyfind(DealerPos, #seat.position, Seats),
     {reply, Dealer, State};
+handle_call(get_preflop_actor, _From, State) ->
+    {_,B} = get_blinds_(State),
+    {reply, get_next_seat_(State, B), State};
 handle_call(get_blinds, _From, State) ->
-    Seats = State#state.seats,
-    {Front, Back} = lists:split(State#state.dealer_button_pos, Seats),
-    SearchSeats = lists:concat([Back, Front]),
-    ActiveSeats = lists:filter(fun(Seat) -> Seat#seat.player /= undefined end, SearchSeats),
-    Reply = case length(ActiveSeats) of
-        2 -> [B,S] = ActiveSeats, {S,B};
-        _ -> [S,B|_] = ActiveSeats, {S,B}
-    end,
-    {reply, Reply, State};
+    {reply, get_blinds_(State), State};
 handle_call({place_bet, #seat{position=Pos,bet=Bet,money=Money}=Seat, BetAmount}, _From, State) ->
     NewSeat = Seat#seat{bet=Bet+BetAmount, money=Money-BetAmount},
     NewSeats = lists:keystore(Pos, #seat.position, State#state.seats, NewSeat),
     {reply, ok, State#state{seats=NewSeats}};
+handle_call({deal_card, #seat{player=Player}, Card}, _From, State) ->
+    player:deal_card(Player, Card),
+    {reply, ok, State};
+handle_call({get_next_seat, Seat}, _From, State) ->
+    {reply, get_next_seat_(State, Seat), State};
 handle_call(_Request, _From, State) ->
 	{reply, ignored, State}.
 
@@ -90,8 +92,26 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
 	{ok, State}.
 
-get_empty_seat(Seats) ->
+get_empty_seat_(#state{seats=Seats}) ->
     EmptySeats = [X || X <- Seats, X#seat.player == undefined],
     lists:nth(random:uniform(length(EmptySeats)), EmptySeats).
 
+get_blinds_(State) ->
+    Seats = State#state.seats,
+    {Front, Back} = lists:split(State#state.dealer_button_pos, Seats),
+    SearchSeats = lists:concat([Back, Front]),
+    ActiveSeats = lists:filter(fun(Seat) -> Seat#seat.player /= undefined end, SearchSeats),
+    case length(ActiveSeats) of
+        2 -> [B,S] = ActiveSeats, {S,B};
+        _ -> [S,B|_] = ActiveSeats, {S,B}
+    end.
+
+get_active_seats_(#state{seats=Seats}) ->
+    [X || X <- Seats, X#seat.player /= undefined].
+
+get_next_seat_(State, #seat{position=Pos}) ->
+    ActiveSeats = get_active_seats_(State),
+    {Front, Back} = lists:splitwith(fun(#seat{position=P}) -> P /= Pos end, ActiveSeats),
+    [_,Next|_] = lists:concat([Back, Front]),
+    Next.
 

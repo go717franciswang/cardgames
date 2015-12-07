@@ -71,6 +71,15 @@ place_bet_test() ->
     ?assertEqual(S1#seat.money - NS1#seat.money, 1),
     ?assertEqual(S2#seat.money - NS2#seat.money, 2).
 
+get_next_seat_test() ->
+    {ok, Seats} = seats:start_link(6),
+    seats:join(Seats, dummy_player1),
+    seats:join(Seats, dummy_player2),
+    [S1, S2] = seats:show_active_seats(Seats),
+
+    ?assertEqual(seats:get_next_seat(Seats, S1), S2),
+    ?assertEqual(seats:get_next_seat(Seats, S2), S1).
+
 
 
 

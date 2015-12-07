@@ -18,10 +18,14 @@ testGameInitializationFlow(_Config) ->
     {ok, Player4} = players_sup:create_player(),
     {ok, _Table} = player:create_table(Player1),
     [TableId] = tables_sup:list_tables(),
-    player:join_table(Player2, TableId),
-    player:join_table(Player3, TableId),
-    player:join_table(Player4, TableId),
-    player:start_game(Player1).
+    ok = player:join_table(Player2, TableId),
+    ok = player:join_table(Player3, TableId),
+    ok = player:join_table(Player4, TableId),
+    ok = player:start_game(Player1),
+    [C1,C2] = player:show_cards(Player1),
+    [C3,C4] = player:show_cards(Player2),
+    [C5,C6] = player:show_cards(Player3),
+    [C7,C8] = player:show_cards(Player4).
 
 
 
