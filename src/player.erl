@@ -3,7 +3,7 @@
 
 %% API.
 -export([start_link/0, create_table/1, join_table/2, start_game/1, deal_card/2,
-        show_cards/1, new_player/2]).
+        show_cards/1, new_player/2, signal_turn/2]).
 
 %% gen_fsm.
 -export([init/1]).
@@ -41,6 +41,9 @@ show_cards(Pid) ->
 new_player(Pid, Player) ->
     gen_fsm:send_event(Pid, {new_player, Player}).
 
+signal_turn(Pid, Options) ->
+    gen_fsm:send_event(Pid, {signal_turn, Options}).
+
 %% gen_fsm.
 
 init([]) ->
@@ -67,6 +70,9 @@ in_game({deal_card, Card}, StateData) ->
     NewCards = [Card|StateData#state.cards],
     io:format("~p got card: ~p~n", [self(), Card]),
     {next_state, in_game, StateData#state{cards=NewCards}};
+in_game({signal_turn, Options}, StateData) ->
+    io:format("~p's turn with options (~p)~n", [self(), Options]),
+    {next_state, in_game, StateData};
 in_game(bet, StateData) ->
 	{next_state, in_game, StateData};
 in_game(check, StateData) ->

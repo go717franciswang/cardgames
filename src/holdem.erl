@@ -14,7 +14,7 @@
 -export([terminate/3]).
 -export([code_change/4]).
 
--record(state, {deck, seats
+-record(state, {deck, seats, actor
 }).
 -include("records.hrl").
 
@@ -55,7 +55,9 @@ waiting_for_players(start, _From, #state{seats=Seats}=StateData) ->
     seats:place_bet(Seats, BigBlind, 0.10),
     DealTimes = length(seats:show_active_seats(Seats))*2,
     deal_cards_(NewState, SmallBlind, DealTimes),
-    {reply, ok, game_in_progess, NewState}.
+    ActorSeat = seats:get_preflop_actor(Seats),
+    player:signal_turn(ActorSeat#seat.player, [fold, call, raise]),
+    {reply, ok, game_in_progess, NewState#state{actor=ActorSeat}}.
 
 game_in_progess({bet, _PlayerId}, StateData) ->
     {next_state, game_in_progess, StateData};
