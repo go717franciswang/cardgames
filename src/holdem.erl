@@ -62,14 +62,17 @@ waiting_for_players(start, _From, #state{seats=Seats}=StateData) ->
     DealTimes = length(seats:show_active_seats(Seats))*2,
     deal_cards_(NewState, SmallBlind, DealTimes),
     ActorSeat = seats:get_preflop_actor(Seats),
-    player:signal_turn(ActorSeat#seat.player, [fold, call, raise]),
+    player:signal_turn(ActorSeat#seat.player),
     {reply, ok, game_in_progess, NewState#state{actor=ActorSeat}}.
 
 game_in_progess(get_seats, _From, StateData) ->
     {reply, StateData#state.seats, game_in_progess, StateData};
-game_in_progess({take_turn, Action}, _From, StateData) ->
+game_in_progess({take_turn, Action}, _From, #state{seats=Seats,actor=Actor}=StateData) ->
     io:format("received action ~p~n", [Action]),
-    {reply, ok, game_in_progess, StateData}.
+    seats:handle_action(StateData#state.seats, Actor, Action),
+    NextActor = seats:get_next_seat(Seats, Actor),
+    player:signal_turn(NextActor#seat.player),
+    {reply, ok, game_in_progess, StateData#state{actor=NextActor}}.
 
 handle_event(_Event, StateName, StateData) ->
 	{next_state, StateName, StateData}.

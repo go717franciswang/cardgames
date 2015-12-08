@@ -5,7 +5,8 @@
 -export([start_link/1]).
 -export([join/2, show_players/1, show_active_seats/1, get_dealer/1, 
         rotate_dealer_button/1, get_blinds/1, get_preflop_actor/1, 
-        get_flop_actor/1, place_bet/3, deal_card/3, get_next_seat/2]).
+        get_flop_actor/1, place_bet/3, deal_card/3, get_next_seat/2,
+        handle_action/3]).
 
 %% gen_server.
 -export([init/1]).
@@ -36,6 +37,7 @@ get_flop_actor(Pid) -> gen_server:call(Pid, get_flop_actor).
 place_bet(Pid, Seat, BetAmount) -> gen_server:call(Pid, {place_bet, Seat, BetAmount}).
 deal_card(Pid, Seat, Card) -> gen_server:call(Pid, {deal_card, Seat, Card}).
 get_next_seat(Pid, Seat) -> gen_server:call(Pid, {get_next_seat, Seat}).
+handle_action(Pid, Actor, Action) -> gen_server:call(Pid, {handle_action, Actor, Action}).
 
 %% gen_server.
 
@@ -77,6 +79,9 @@ handle_call({deal_card, #seat{player=Player}, Card}, _From, State) ->
     {reply, ok, State};
 handle_call({get_next_seat, Seat}, _From, State) ->
     {reply, get_next_seat_(State, Seat), State};
+handle_call({handle_action, _Actor, _Action}, _From, State) ->
+    % TODO: handle action
+    {reply, ok, State};
 handle_call(_Request, _From, State) ->
 	{reply, ignored, State}.
 
