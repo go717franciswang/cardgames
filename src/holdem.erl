@@ -3,11 +3,11 @@
 
 %% API.
 -export([start_link/0]).
--export([join/2, start_game/1, get_seats/1]).
+-export([join/2, start_game/1, get_seats/1, take_turn/2]).
 
 %% gen_fsm.
 -export([init/1]).
--export([waiting_for_players/3, game_in_progess/3, game_in_progess/2]).
+-export([waiting_for_players/3, game_in_progess/3]).
 -export([handle_event/3]).
 -export([handle_sync_event/4]).
 -export([handle_info/3]).
@@ -33,6 +33,9 @@ start_game(Pid) ->
 
 get_seats(Pid) ->
     gen_fsm:sync_send_event(Pid, get_seats).
+
+take_turn(Pid, Action) ->
+    gen_fsm:sync_send_event(Pid, {take_turn, Action}).
 
 %% gen_fsm.
 
@@ -63,17 +66,10 @@ waiting_for_players(start, _From, #state{seats=Seats}=StateData) ->
     {reply, ok, game_in_progess, NewState#state{actor=ActorSeat}}.
 
 game_in_progess(get_seats, _From, StateData) ->
-    {reply, StateData#state.seats, game_in_progess, StateData}.
-game_in_progess({bet, _PlayerId}, StateData) ->
-    {next_state, game_in_progess, StateData};
-game_in_progess({check, _PlayerId}, StateData) ->
-    {next_state, game_in_progess, StateData};
-game_in_progess({raise, _PlayerId}, StateData) ->
-    {next_state, game_in_progess, StateData};
-game_in_progess({call, _PlayerId}, StateData) ->
-    {next_state, game_in_progess, StateData};
-game_in_progess({fold, _PlayerId}, StateData) ->
-    {next_state, game_in_progess, StateData}.
+    {reply, StateData#state.seats, game_in_progess, StateData};
+game_in_progess({take_turn, Action}, _From, StateData) ->
+    io:format("received action ~p~n", [Action]),
+    {reply, ok, game_in_progess, StateData}.
 
 handle_event(_Event, StateName, StateData) ->
 	{next_state, StateName, StateData}.

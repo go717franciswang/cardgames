@@ -3,7 +3,7 @@
 
 %% API.
 -export([start_link/0, create_table/1, join_table/2, start_game/1, deal_card/2,
-        show_cards/1, new_player/2, signal_turn/2]).
+        show_cards/1, new_player/2, signal_turn/2, take_turn/2]).
 
 %% gen_fsm.
 -export([init/1]).
@@ -44,6 +44,9 @@ new_player(Pid, Player) ->
 signal_turn(Pid, Options) ->
     gen_fsm:send_event(Pid, {signal_turn, Options}).
 
+take_turn(Pid, Action) ->
+    gen_fsm:sync_send_event(Pid, {take_turn, Action}).
+
 %% gen_fsm.
 
 init([]) ->
@@ -62,6 +65,9 @@ in_game(show_cards, _From, StateData) ->
     {reply, StateData#state.cards, in_game, StateData};
 in_game(start_game, _From, StateData) ->
     Reply = holdem:start_game(StateData#state.game),
+    {reply, Reply, in_game, StateData};
+in_game({take_turn, Action}, _From, StateData) ->
+    Reply = holdem:take_turn(StateData#state.game, Action),
     {reply, Reply, in_game, StateData}.
 in_game({new_player, Player}, StateData) ->
     io:format("~p new player: ~p~n", [self(), Player]),
