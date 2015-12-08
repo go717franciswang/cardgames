@@ -94,7 +94,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 get_empty_seat_(#state{seats=Seats}) ->
     EmptySeats = [X || X <- Seats, X#seat.player == undefined],
-    lists:nth(random:uniform(length(EmptySeats)), EmptySeats).
+    lists:nth(rand:uniform(length(EmptySeats)), EmptySeats).
 
 get_blinds_(State) ->
     Seats = State#state.seats,

@@ -66,5 +66,5 @@ code_change(_OldVsn, State, _Extra) ->
 
 shuffle_cards(Items) ->
     % http://stackoverflow.com/a/8820501/3678068
-    [X || {_,X} <- lists:sort([{random:uniform(), Item} || Item <- Items])].
+    [X || {_,X} <- lists:sort([{rand:uniform(), Item} || Item <- Items])].
 

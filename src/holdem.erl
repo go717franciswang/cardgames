@@ -3,11 +3,11 @@
 
 %% API.
 -export([start_link/0]).
--export([join/2, start_game/1]).
+-export([join/2, start_game/1, get_seats/1]).
 
 %% gen_fsm.
 -export([init/1]).
--export([waiting_for_players/3, game_in_progess/2]).
+-export([waiting_for_players/3, game_in_progess/3, game_in_progess/2]).
 -export([handle_event/3]).
 -export([handle_sync_event/4]).
 -export([handle_info/3]).
@@ -30,6 +30,9 @@ join(Pid, Player) ->
 
 start_game(Pid) ->
     gen_fsm:sync_send_event(Pid, start).
+
+get_seats(Pid) ->
+    gen_fsm:sync_send_event(Pid, get_seats).
 
 %% gen_fsm.
 
@@ -59,6 +62,8 @@ waiting_for_players(start, _From, #state{seats=Seats}=StateData) ->
     player:signal_turn(ActorSeat#seat.player, [fold, call, raise]),
     {reply, ok, game_in_progess, NewState#state{actor=ActorSeat}}.
 
+game_in_progess(get_seats, _From, StateData) ->
+    {reply, StateData#state.seats, game_in_progess, StateData}.
 game_in_progess({bet, _PlayerId}, StateData) ->
     {next_state, game_in_progess, StateData};
 game_in_progess({check, _PlayerId}, StateData) ->
