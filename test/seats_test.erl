@@ -69,7 +69,15 @@ place_bet_test() ->
     ?assertEqual(NS1#seat.bet, 1),
     ?assertEqual(NS2#seat.bet, 2),
     ?assertEqual(S1#seat.money - NS1#seat.money, 1),
-    ?assertEqual(S2#seat.money - NS2#seat.money, 2).
+    ?assertEqual(S2#seat.money - NS2#seat.money, 2),
+
+    seats:place_bet(Seats, S1, 2),
+    seats:place_bet(Seats, S2, 3),
+    [NS1_, NS2_] = seats:show_active_seats(Seats),
+    ?assertEqual(NS1_#seat.bet, 2),
+    ?assertEqual(NS2_#seat.bet, 3),
+    ?assertEqual(S1#seat.money - NS1_#seat.money, 2),
+    ?assertEqual(S2#seat.money - NS2_#seat.money, 3).
 
 get_next_seat_test() ->
     {ok, Seats} = seats:start_link(6),

@@ -78,6 +78,10 @@ handle_call({deal_card, #seat{player=Player}, Card}, _From, State) ->
     {reply, ok, State};
 handle_call({get_next_seat, Seat}, _From, State) ->
     {reply, get_next_seat_(State, Seat), State};
+handle_call({handle_action, Actor, call}, _From, State) ->
+    BetAmount = get_call_amount_(State),
+    NewState = place_bet_(State, Actor, BetAmount),
+    {reply, ok, NewState};
 handle_call({handle_action, _Actor, _Action}, _From, State) ->
     % TODO: handle action
     {reply, ok, State};
@@ -119,13 +123,15 @@ get_next_seat_(State, #seat{position=Pos}) ->
     [_,Next|_] = lists:concat([Back, Front]),
     Next.
 
+% BetAmount represent final bet amount, it is not incremental change
 place_bet_(State, #seat{position=Pos}, BetAmount) ->
     % use position to get the most current seat data in case seat in the
     % argument is out-of-date
     CurSeat = lists:keyfind(Pos, #seat.position, State#state.seats),
     #seat{bet=Bet,money=Money} = CurSeat,
-    NewSeat = CurSeat#seat{bet=Bet+BetAmount, money=Money-BetAmount},
+    NewSeat = CurSeat#seat{bet=BetAmount, money=Money-(BetAmount-Bet)},
     NewSeats = lists:keystore(Pos, #seat.position, State#state.seats, NewSeat),
     State#state{seats=NewSeats}.
 
+get_call_amount_(_State) -> 0.1.
 
