@@ -70,10 +70,9 @@ handle_call(get_preflop_actor, _From, State) ->
     {reply, get_next_seat_(State, B), State};
 handle_call(get_blinds, _From, State) ->
     {reply, get_blinds_(State), State};
-handle_call({place_bet, #seat{position=Pos,bet=Bet,money=Money}=Seat, BetAmount}, _From, State) ->
-    NewSeat = Seat#seat{bet=Bet+BetAmount, money=Money-BetAmount},
-    NewSeats = lists:keystore(Pos, #seat.position, State#state.seats, NewSeat),
-    {reply, ok, State#state{seats=NewSeats}};
+handle_call({place_bet, Seat, BetAmount}, _From, State) ->
+    NewState = place_bet_(State, Seat, BetAmount),
+    {reply, ok, NewState};
 handle_call({deal_card, #seat{player=Player}, Card}, _From, State) ->
     player:deal_card(Player, Card),
     {reply, ok, State};
@@ -119,4 +118,14 @@ get_next_seat_(State, #seat{position=Pos}) ->
     {Front, Back} = lists:splitwith(fun(#seat{position=P}) -> P /= Pos end, ActiveSeats),
     [_,Next|_] = lists:concat([Back, Front]),
     Next.
+
+place_bet_(State, #seat{position=Pos}, BetAmount) ->
+    % use position to get the most current seat data in case seat in the
+    % argument is out-of-date
+    CurSeat = lists:keyfind(Pos, #seat.position, State#state.seats),
+    #seat{bet=Bet,money=Money} = CurSeat,
+    NewSeat = CurSeat#seat{bet=Bet+BetAmount, money=Money-BetAmount},
+    NewSeats = lists:keystore(Pos, #seat.position, State#state.seats, NewSeat),
+    State#state{seats=NewSeats}.
+
 
