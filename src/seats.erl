@@ -98,9 +98,6 @@ handle_call({handle_action, Actor, bet}, _From, State) ->
     BetAmount = State#state.blind_amount,
     NewState = place_bet_(State, Actor, BetAmount),
     {reply, ok, NewState};
-handle_call({handle_action, _Actor, _Action}, _From, State) ->
-    % TODO: handle action
-    {reply, ok, State};
 handle_call(_Request, _From, State) ->
 	{reply, ignored, State}.
 
