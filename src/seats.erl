@@ -133,5 +133,8 @@ place_bet_(State, #seat{position=Pos}, BetAmount) ->
     NewSeats = lists:keystore(Pos, #seat.position, State#state.seats, NewSeat),
     State#state{seats=NewSeats}.
 
-get_call_amount_(_State) -> 0.1.
+get_call_amount_(State) ->
+    Seats = get_active_seats_(State),
+    lists:max([Seat#seat.bet || Seat <- Seats]).
+
 

@@ -88,6 +88,19 @@ get_next_seat_test() ->
     ?assertEqual(seats:get_next_seat(Seats, S1), S2),
     ?assertEqual(seats:get_next_seat(Seats, S2), S1).
 
+handle_action_test() ->
+    {ok, Seats} = seats:start_link(6),
+    seats:join(Seats, dummy_player1),
+    seats:join(Seats, dummy_player2),
+    [S1, S2] = seats:show_active_seats(Seats),
+    seats:place_bet(Seats, S1, 1),
+    seats:handle_action(Seats, S2, call),
+
+    [NS1, NS2] = seats:show_active_seats(Seats),
+    ?assertEqual(NS1#seat.bet, 1),
+    ?assertEqual(NS2#seat.bet, 1).
+
+
 
 
 
