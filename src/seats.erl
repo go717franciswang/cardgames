@@ -16,7 +16,7 @@
 -export([terminate/2]).
 -export([code_change/3]).
 
--record(state, {seats=[], dealer_button_pos=1
+-record(state, {seats=[], dealer_button_pos=1, blind_amount=0.1
 }).
 -include("records.hrl").
 
@@ -82,6 +82,22 @@ handle_call({handle_action, Actor, call}, _From, State) ->
     BetAmount = get_call_amount_(State),
     NewState = place_bet_(State, Actor, BetAmount),
     {reply, ok, NewState};
+handle_call({handle_action, Actor, raise}, _From, State) ->
+    BetAmount = get_raise_amount_(State),
+    NewState = place_bet_(State, Actor, BetAmount),
+    {reply, ok, NewState};
+handle_call({handle_action, Actor, small_blind}, _From, State) ->
+    BetAmount = State#state.blind_amount/2,
+    NewState = place_bet_(State, Actor, BetAmount),
+    {reply, ok, NewState};
+handle_call({handle_action, Actor, big_blind}, _From, State) ->
+    BetAmount = State#state.blind_amount,
+    NewState = place_bet_(State, Actor, BetAmount),
+    {reply, ok, NewState};
+handle_call({handle_action, Actor, bet}, _From, State) ->
+    BetAmount = State#state.blind_amount,
+    NewState = place_bet_(State, Actor, BetAmount),
+    {reply, ok, NewState};
 handle_call({handle_action, _Actor, _Action}, _From, State) ->
     % TODO: handle action
     {reply, ok, State};
@@ -137,4 +153,6 @@ get_call_amount_(State) ->
     Seats = get_active_seats_(State),
     lists:max([Seat#seat.bet || Seat <- Seats]).
 
+get_raise_amount_(State) ->
+    get_call_amount_(State) + State#state.blind_amount.
 
