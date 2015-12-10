@@ -6,7 +6,8 @@
 -export([join/2, show_players/1, show_active_seats/1, get_dealer/1, 
         rotate_dealer_button/1, get_blinds/1, get_preflop_actor/1, 
         get_flop_actor/1, place_bet/3, deal_card/3, get_next_seat/2,
-        handle_action/3, is_betting_complete/1, clear_last_action/1]).
+        handle_action/3, is_betting_complete/1, clear_last_action/1,
+        pot_bets/1, get_pot/1]).
 
 %% gen_server.
 -export([init/1]).
@@ -16,7 +17,7 @@
 -export([terminate/2]).
 -export([code_change/3]).
 
--record(state, {seats=[], dealer_button_pos=1, blind_amount=0.1
+-record(state, {seats=[], dealer_button_pos=1, blind_amount=0.1, pot=0
 }).
 -include("records.hrl").
 
@@ -40,6 +41,8 @@ get_next_seat(Pid, Seat) -> gen_server:call(Pid, {get_next_seat, Seat}).
 handle_action(Pid, Actor, Action) -> gen_server:call(Pid, {handle_action, Actor, Action}).
 is_betting_complete(Pid) -> gen_server:call(Pid, is_betting_complete).
 clear_last_action(Pid) -> gen_server:call(Pid, clear_last_action).
+pot_bets(Pid) -> gen_server:call(Pid, pot_bets).
+get_pot(Pid) -> gen_server:call(Pid, get_pot).
 
 %% gen_server.
 
@@ -123,6 +126,14 @@ handle_call(clear_last_action, _From, State) ->
            (Seat) -> Seat#seat{last_action=undefined}
         end, State#state.seats),
     {reply, ok, State#state{seats=NewSeats}};
+handle_call(pot_bets, _From, #state{seats=Seats,pot=Pot}=State) ->
+    {NewSeats, NewPot} = lists:foldl(
+        fun(#seat{bet=Bet}=Seat, {S, P}) -> 
+                {[Seat#seat{bet=0}|S], P+Bet}
+        end, {[], Pot}, Seats),
+    {reply, ok, State#state{seats=NewSeats,pot=NewPot}};
+handle_call(get_pot, _From, State) ->
+    {reply, State#state.pot, State};
 handle_call(_Request, _From, State) ->
 	{reply, ignored, State}.
 

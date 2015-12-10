@@ -53,8 +53,8 @@ get_blinds_test() ->
     [P1,P2,P3] = seats:show_players(Seats),
     {S,B} = seats:get_blinds(Seats),
 
-    ?assertEqual(S#seat.player, P2),
-    ?assertEqual(B#seat.player, P3).
+    ?assertEqual(P2, S#seat.player),
+    ?assertEqual(P3, B#seat.player).
 
 place_bet_test() ->
     {ok, Seats} = seats:start_link(6),
@@ -66,18 +66,18 @@ place_bet_test() ->
     seats:place_bet(Seats, S2, 2),
 
     [NS1, NS2] = seats:show_active_seats(Seats),
-    ?assertEqual(NS1#seat.bet, 1),
-    ?assertEqual(NS2#seat.bet, 2),
-    ?assertEqual(S1#seat.money - NS1#seat.money, 1),
-    ?assertEqual(S2#seat.money - NS2#seat.money, 2),
+    ?assertEqual(1, NS1#seat.bet),
+    ?assertEqual(2, NS2#seat.bet),
+    ?assertEqual(1, S1#seat.money - NS1#seat.money),
+    ?assertEqual(2, S2#seat.money - NS2#seat.money),
 
     seats:place_bet(Seats, S1, 2),
     seats:place_bet(Seats, S2, 3),
     [NS1_, NS2_] = seats:show_active_seats(Seats),
-    ?assertEqual(NS1_#seat.bet, 2),
-    ?assertEqual(NS2_#seat.bet, 3),
-    ?assertEqual(S1#seat.money - NS1_#seat.money, 2),
-    ?assertEqual(S2#seat.money - NS2_#seat.money, 3).
+    ?assertEqual(2, NS1_#seat.bet),
+    ?assertEqual(3, NS2_#seat.bet),
+    ?assertEqual(2, S1#seat.money - NS1_#seat.money),
+    ?assertEqual(3, S2#seat.money - NS2_#seat.money).
 
 get_next_seat_test() ->
     {ok, Seats} = seats:start_link(6),
@@ -85,8 +85,8 @@ get_next_seat_test() ->
     seats:join(Seats, dummy_player2),
     [S1, S2] = seats:show_active_seats(Seats),
 
-    ?assertEqual(seats:get_next_seat(Seats, S1), S2),
-    ?assertEqual(seats:get_next_seat(Seats, S2), S1).
+    ?assertEqual(S2, seats:get_next_seat(Seats, S1)),
+    ?assertEqual(S1, seats:get_next_seat(Seats, S2)).
 
 handle_action_call_test() ->
     {ok, Seats} = seats:start_link(6),
@@ -97,8 +97,8 @@ handle_action_call_test() ->
     seats:handle_action(Seats, S2, call),
 
     [NS1, NS2] = seats:show_active_seats(Seats),
-    ?assertEqual(NS1#seat.bet, 1),
-    ?assertEqual(NS2#seat.bet, 1).
+    ?assertEqual(1, NS1#seat.bet),
+    ?assertEqual(1, NS2#seat.bet).
 
 handle_action_raise_test() ->
     {ok, Seats} = seats:start_link(6),
@@ -109,8 +109,8 @@ handle_action_raise_test() ->
     seats:handle_action(Seats, S2, raise),
 
     [NS1, NS2] = seats:show_active_seats(Seats),
-    ?assertEqual(NS1#seat.bet, 1),
-    ?assertEqual(NS2#seat.bet, 1.1).
+    ?assertEqual(1, NS1#seat.bet),
+    ?assertEqual(1.1, NS2#seat.bet).
 
 is_betting_complete_test() ->
     {ok, Seats} = seats:start_link(6),
@@ -127,6 +127,21 @@ is_betting_complete_test() ->
     ?assertEqual(false, seats:is_betting_complete(Seats)),
     seats:handle_action(Seats, S2, check),
     ?assertEqual(true, seats:is_betting_complete(Seats)).
+
+pot_bets_test() ->
+    {ok, Seats} = seats:start_link(6),
+    seats:join(Seats, dummy_player1),
+    seats:join(Seats, dummy_player2),
+    [S1, S2] = seats:show_active_seats(Seats),
+    seats:handle_action(Seats, S1, small_blind),
+    seats:handle_action(Seats, S2, big_blind),
+    seats:handle_action(Seats, S1, call),
+    seats:handle_action(Seats, S2, check),
+    seats:pot_bets(Seats),
+    [NS1, NS2] = seats:show_active_seats(Seats),
+    ?assertEqual(0.2, seats:get_pot(Seats)),
+    ?assertEqual(0, NS1#seat.bet),
+    ?assertEqual(0, NS2#seat.bet).
 
 
 

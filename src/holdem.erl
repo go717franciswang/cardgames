@@ -108,6 +108,7 @@ draw_community_cards_(#state{community_cards=CC,deck=Deck,seats=Seats}=State, N,
     NewCC = CC ++ deck:draw_cards(Deck, N),
     io:format("community cards: ~p~n", [NewCC]),
     seats:clear_last_action(Seats),
+    seats:pot_bets(Seats),
     State#state{community_cards=NewCC,stage=NextStage}.
 
 
