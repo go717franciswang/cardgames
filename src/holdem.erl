@@ -105,6 +105,7 @@ deal_cards_(#state{seats=Seats,deck=Deck}=State,DealTo,TimesLeft) ->
     deal_cards_(State, NextSeat, TimesLeft-1).
 
 draw_community_cards_(#state{community_cards=CC,deck=Deck,seats=Seats}=State, N, NextStage) ->
+    deck:draw_cards(Deck, 1), % burn card
     NewCC = CC ++ deck:draw_cards(Deck, N),
     io:format("community cards: ~p~n", [NewCC]),
     seats:clear_last_action(Seats),
