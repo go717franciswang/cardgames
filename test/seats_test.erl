@@ -88,7 +88,7 @@ get_next_seat_test() ->
     ?assertEqual(seats:get_next_seat(Seats, S1), S2),
     ?assertEqual(seats:get_next_seat(Seats, S2), S1).
 
-handle_action_test() ->
+handle_action_call_test() ->
     {ok, Seats} = seats:start_link(6),
     seats:join(Seats, dummy_player1),
     seats:join(Seats, dummy_player2),
@@ -100,7 +100,33 @@ handle_action_test() ->
     ?assertEqual(NS1#seat.bet, 1),
     ?assertEqual(NS2#seat.bet, 1).
 
+handle_action_raise_test() ->
+    {ok, Seats} = seats:start_link(6),
+    seats:join(Seats, dummy_player1),
+    seats:join(Seats, dummy_player2),
+    [S1, S2] = seats:show_active_seats(Seats),
+    seats:place_bet(Seats, S1, 1),
+    seats:handle_action(Seats, S2, raise),
 
+    [NS1, NS2] = seats:show_active_seats(Seats),
+    ?assertEqual(NS1#seat.bet, 1),
+    ?assertEqual(NS2#seat.bet, 1.1).
+
+is_betting_complete_test() ->
+    {ok, Seats} = seats:start_link(6),
+    seats:join(Seats, dummy_player1),
+    seats:join(Seats, dummy_player2),
+    ?assertEqual(false, seats:is_betting_complete(Seats)),
+
+    [S1, S2] = seats:show_active_seats(Seats),
+    seats:handle_action(Seats, S1, small_blind),
+    seats:handle_action(Seats, S2, big_blind),
+    ?assertEqual(false, seats:is_betting_complete(Seats)),
+
+    seats:handle_action(Seats, S1, call),
+    ?assertEqual(false, seats:is_betting_complete(Seats)),
+    seats:handle_action(Seats, S2, check),
+    ?assertEqual(true, seats:is_betting_complete(Seats)).
 
 
 

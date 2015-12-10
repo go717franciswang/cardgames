@@ -14,7 +14,7 @@
 -export([terminate/3]).
 -export([code_change/4]).
 
--record(state, {deck, seats, actor
+-record(state, {deck, seats, actor, community_cards=[], stage
 }).
 -include("records.hrl").
 
@@ -63,16 +63,24 @@ waiting_for_players(start, _From, #state{seats=Seats}=StateData) ->
     deal_cards_(NewState, SmallBlind, DealTimes),
     ActorSeat = seats:get_preflop_actor(Seats),
     player:signal_turn(ActorSeat#seat.player),
-    {reply, ok, game_in_progess, NewState#state{actor=ActorSeat}}.
+    {reply, ok, game_in_progess, NewState#state{actor=ActorSeat, stage=preflop}}.
 
 game_in_progess(get_seats, _From, StateData) ->
     {reply, StateData#state.seats, game_in_progess, StateData};
-game_in_progess({take_turn, Action}, _From, #state{seats=Seats,actor=Actor}=StateData) ->
+game_in_progess({take_turn, Action}, _From, #state{seats=Seats,actor=Actor,stage=Stage}=StateData) ->
     io:format("received action ~p~n", [Action]),
-    seats:handle_action(StateData#state.seats, Actor, Action),
+    seats:handle_action(Seats, Actor, Action),
+
+    NewState = case {seats:is_betting_complete(Seats), Stage} of
+        {true,preflop} -> draw_community_cards_(StateData, 3, flop);
+        {true,flop} -> draw_community_cards_(StateData, 1, turn);
+        {true,turn} -> draw_community_cards_(StateData, 1, river);
+        {false,_} -> StateData
+    end,
+
     NextActor = seats:get_next_seat(Seats, Actor),
     player:signal_turn(NextActor#seat.player),
-    {reply, ok, game_in_progess, StateData#state{actor=NextActor}}.
+    {reply, ok, game_in_progess, NewState#state{actor=NextActor}}.
 
 handle_event(_Event, StateName, StateData) ->
 	{next_state, StateName, StateData}.
@@ -95,3 +103,11 @@ deal_cards_(#state{seats=Seats,deck=Deck}=State,DealTo,TimesLeft) ->
     seats:deal_card(Seats, DealTo, Card),
     NextSeat = seats:get_next_seat(Seats, DealTo),
     deal_cards_(State, NextSeat, TimesLeft-1).
+
+draw_community_cards_(#state{community_cards=CC,deck=Deck,seats=Seats}=State, N, NextStage) ->
+    NewCC = CC ++ deck:draw_cards(Deck, N),
+    io:format("community cards: ~p~n", [NewCC]),
+    seats:clear_last_action(Seats),
+    State#state{community_cards=NewCC,stage=NextStage}.
+
+

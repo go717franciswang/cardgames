@@ -6,7 +6,7 @@
 -export([join/2, show_players/1, show_active_seats/1, get_dealer/1, 
         rotate_dealer_button/1, get_blinds/1, get_preflop_actor/1, 
         get_flop_actor/1, place_bet/3, deal_card/3, get_next_seat/2,
-        handle_action/3]).
+        handle_action/3, is_betting_complete/1, clear_last_action/1]).
 
 %% gen_server.
 -export([init/1]).
@@ -38,6 +38,8 @@ place_bet(Pid, Seat, BetAmount) -> gen_server:call(Pid, {place_bet, Seat, BetAmo
 deal_card(Pid, Seat, Card) -> gen_server:call(Pid, {deal_card, Seat, Card}).
 get_next_seat(Pid, Seat) -> gen_server:call(Pid, {get_next_seat, Seat}).
 handle_action(Pid, Actor, Action) -> gen_server:call(Pid, {handle_action, Actor, Action}).
+is_betting_complete(Pid) -> gen_server:call(Pid, is_betting_complete).
+clear_last_action(Pid) -> gen_server:call(Pid, clear_last_action).
 
 %% gen_server.
 
@@ -80,11 +82,11 @@ handle_call({get_next_seat, Seat}, _From, State) ->
     {reply, get_next_seat_(State, Seat), State};
 handle_call({handle_action, Actor, call}, _From, State) ->
     BetAmount = get_call_amount_(State),
-    NewState = place_bet_(State, Actor, BetAmount),
+    NewState = log_action_(place_bet_(State, Actor, BetAmount), Actor, call),
     {reply, ok, NewState};
 handle_call({handle_action, Actor, raise}, _From, State) ->
     BetAmount = get_raise_amount_(State),
-    NewState = place_bet_(State, Actor, BetAmount),
+    NewState = log_action_(place_bet_(State, Actor, BetAmount), Actor, raise),
     {reply, ok, NewState};
 handle_call({handle_action, Actor, small_blind}, _From, State) ->
     BetAmount = State#state.blind_amount/2,
@@ -96,8 +98,31 @@ handle_call({handle_action, Actor, big_blind}, _From, State) ->
     {reply, ok, NewState};
 handle_call({handle_action, Actor, bet}, _From, State) ->
     BetAmount = State#state.blind_amount,
-    NewState = place_bet_(State, Actor, BetAmount),
+    NewState = log_action_(place_bet_(State, Actor, BetAmount), Actor, bet),
     {reply, ok, NewState};
+handle_call({handle_action, Actor, check}, _From, State) ->
+    NewState = log_action_(State, Actor, check),
+    {reply, ok, NewState};
+handle_call({handle_action, Actor, fold}, _From, State) ->
+    NewState = log_action_(State, Actor, fold),
+    {reply, ok, NewState};
+handle_call(is_betting_complete, _From, State) ->
+    Seats = get_active_seats_(State),
+    CallAmount = get_call_amount_(State),
+    Reply = lists:all(
+        fun(#seat{last_action=fold}) -> true;
+           (#seat{last_action=undefined}) -> false;
+           (#seat{bet=Bet}) -> CallAmount == Bet;
+           (_) -> false
+        end, Seats),
+    {reply, Reply, State};
+handle_call(clear_last_action, _From, State) ->
+    NewSeats = lists:map(
+        fun(#seat{last_action=fold}=Seat) -> Seat;
+           (#seat{player=undefined}=Seat) -> Seat;
+           (Seat) -> Seat#seat{last_action=undefined}
+        end, State#state.seats),
+    {reply, ok, State#state{seats=NewSeats}};
 handle_call(_Request, _From, State) ->
 	{reply, ignored, State}.
 
@@ -152,4 +177,10 @@ get_call_amount_(State) ->
 
 get_raise_amount_(State) ->
     get_call_amount_(State) + State#state.blind_amount.
+
+log_action_(State, #seat{position=Pos}, Action) ->
+    Seat = lists:keyfind(Pos, #seat.position, State#state.seats),
+    NewSeat = Seat#seat{last_action=Action},
+    NewSeats = lists:keystore(Pos, #seat.position, State#state.seats, NewSeat),
+    State#state{seats=NewSeats}.
 
