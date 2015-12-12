@@ -1,12 +1,29 @@
 -module(hand).
--export([highest_hand/1, get_royal_flush/1, get_straight_flush/1, get_straight/1,
+-export([get_hand/1, get_royal_flush/1, get_straight_flush/1, get_straight/1,
          get_flush/1, get_four_of_a_kind/1, get_full_house/1, get_three_of_a_kind/1,
-         get_two_pair/1, get_one_pair/1]).
+         get_two_pair/1, get_one_pair/1, get_high_card/1]).
 
 -include("records.hrl").
 
-highest_hand(_Cards) ->
-    royal_flush.
+get_hand(Cards) ->
+    HandGetters = [
+        fun ?MODULE:get_royal_flush/1, 
+        fun ?MODULE:get_four_of_a_kind/1, 
+        fun ?MODULE:get_full_house/1, 
+        fun ?MODULE:get_straight/1, 
+        fun ?MODULE:get_three_of_a_kind/1, 
+        fun ?MODULE:get_two_pair/1, 
+        fun ?MODULE:get_one_pair/1, 
+        fun ?MODULE:get_high_card/1],
+
+    SortedCards = sort_cards(Cards),
+    lists:foldl(
+        fun(HandGetter, undefined) -> HandGetter(SortedCards);
+           (_, Hand) when Hand /= undefined -> Hand
+        end, undefined, HandGetters).
+
+sort_cards(Cards) ->
+    [X || {_,X} <- lists:sort(lists:zip(get_rank_vals(Cards), Cards))].
 
 get_royal_flush(Cards) ->
     case Cards of
@@ -86,7 +103,7 @@ get_one_pair(Cards) ->
     end.
 
 get_high_card(Cards) ->
-    #hand{name=high_card, rank_vals=lists:reverse(get_rank_vals(Cards)).
+    #hand{name=high_card, rank_vals=lists:reverse(get_rank_vals(Cards))}.
 
 get_ranks(Cards) -> lists:map(fun(#card{rank=R}) -> R end, Cards).
 get_suits(Cards) -> lists:map(fun(#card{suit=S}) -> S end, Cards).

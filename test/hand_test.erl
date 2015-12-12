@@ -138,3 +138,37 @@ get_one_pair_test() ->
             #card{rank=six,suit=diamond},
             #card{rank=seven,suit=heart}]),
     ?assertEqual(#hand{name=one_pair, rank_vals=[4,4,7,6,5]}, Hand).
+
+get_hand_test() ->
+    Hand1 = hand:get_hand([
+            #card{rank=ten,suit=heart},
+            #card{rank=jack,suit=heart},
+            #card{rank=queen,suit=heart},
+            #card{rank=king,suit=heart},
+            #card{rank=ace,suit=heart}]),
+    ?assertEqual(royal_flush, Hand1#hand.name),
+
+    Hand2 = hand:get_hand([
+            #card{rank=four,suit=heart},
+            #card{rank=four,suit=spade},
+            #card{rank=five,suit=club},
+            #card{rank=six,suit=diamond},
+            #card{rank=seven,suit=heart}]),
+    ?assertEqual(#hand{name=one_pair, rank_vals=[4,4,7,6,5]}, Hand2),
+
+    Hand3 = hand:get_hand([
+            #card{rank=four,suit=heart},
+            #card{rank=four,suit=spade},
+            #card{rank=four,suit=club},
+            #card{rank=five,suit=diamond},
+            #card{rank=five,suit=heart}]),
+    ?assertEqual(#hand{name=full_house, rank_vals=[4,4,4,5,5]}, Hand3),
+
+    Hand4 = hand:get_hand([
+            #card{rank=ace,suit=heart},
+            #card{rank=two,suit=heart},
+            #card{rank=three,suit=heart},
+            #card{rank=four,suit=heart},
+            #card{rank=five,suit=heart}]),
+    ?assertEqual(#hand{name=straight, rank_vals=[5,4,3,2,1]}, Hand4).
+
