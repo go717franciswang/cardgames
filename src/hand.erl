@@ -1,9 +1,43 @@
 -module(hand).
 -export([get_hand/1, get_royal_flush/1, get_straight_flush/1, get_straight/1,
          get_flush/1, get_four_of_a_kind/1, get_full_house/1, get_three_of_a_kind/1,
-         get_two_pair/1, get_one_pair/1, get_high_card/1]).
+         get_two_pair/1, get_one_pair/1, get_high_card/1, get_highest_hand/1, 
+         choose/2]).
 
 -include("records.hrl").
+
+get_highest_hand(Cards) ->
+    SortedCards = sort_cards(Cards),
+    FiveCardsCombos = choose(SortedCards, 5),
+    lists:foldl(
+        fun(FiveCards, {HiHand,HiCards}) ->
+                Hand = get_hand(FiveCards),
+                case is_higher_hand(Hand, HiHand) of
+                    true -> {Hand, FiveCards};
+                    false -> {HiHand,HiCards}
+                end
+        end, {undefined,undefined}, FiveCardsCombos).
+
+choose(Items, N) when length(Items) < N -> [];
+choose(Items, N) when length(Items) == N -> [Items];
+choose(_, 0) -> [[]];
+choose([H|T], N)-> choose(T, N) ++ [[H|R] || R <- choose(T, N-1)].
+
+is_higher_hand(A,B) -> hand_to_vals(A) > hand_to_vals(B).
+
+hand_to_vals(undefined) -> [0];
+hand_to_vals(#hand{name=Name,rank_vals=RankVals}) -> [hand_name_to_val(Name)|RankVals].
+
+hand_name_to_val(high_card) -> 1;
+hand_name_to_val(one_pair) -> 2;
+hand_name_to_val(two_pair) -> 3;
+hand_name_to_val(three_of_a_kind) -> 4;
+hand_name_to_val(straight) -> 5;
+hand_name_to_val(flush) -> 6;
+hand_name_to_val(full_house) -> 7;
+hand_name_to_val(four_of_a_kind) -> 8;
+hand_name_to_val(straight_flush) -> 9;
+hand_name_to_val(royal_flush) -> 10.
 
 get_hand(Cards) ->
     HandGetters = [
@@ -16,9 +50,8 @@ get_hand(Cards) ->
         fun ?MODULE:get_one_pair/1, 
         fun ?MODULE:get_high_card/1],
 
-    SortedCards = sort_cards(Cards),
     lists:foldl(
-        fun(HandGetter, undefined) -> HandGetter(SortedCards);
+        fun(HandGetter, undefined) -> HandGetter(Cards);
            (_, Hand) when Hand /= undefined -> Hand
         end, undefined, HandGetters).
 

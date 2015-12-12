@@ -162,13 +162,39 @@ get_hand_test() ->
             #card{rank=four,suit=club},
             #card{rank=five,suit=diamond},
             #card{rank=five,suit=heart}]),
-    ?assertEqual(#hand{name=full_house, rank_vals=[4,4,4,5,5]}, Hand3),
+    ?assertEqual(#hand{name=full_house, rank_vals=[4,4,4,5,5]}, Hand3).
 
-    Hand4 = hand:get_hand([
-            #card{rank=ace,suit=heart},
-            #card{rank=two,suit=heart},
+choose_test() ->
+    Combos = lists:sort(hand:choose([1,2,3], 2)),
+    ?assertEqual([[1,2],[1,3],[2,3]], Combos).
+
+get_highest_hand_test() ->
+    Ans1 = hand:get_highest_hand([
+            #card{rank=ten,suit=diamond},
+            #card{rank=jack,suit=heart},
+            #card{rank=ten,suit=spade},
+            #card{rank=ten,suit=heart},
+            #card{rank=queen,suit=heart},
+            #card{rank=king,suit=heart},
+            #card{rank=ace,suit=heart}]),
+    ?assertMatch({#hand{name=royal_flush}, 
+                 [#card{rank=ten,suit=heart},
+                  #card{rank=jack,suit=heart},
+                  #card{rank=queen,suit=heart},
+                  #card{rank=king,suit=heart},
+                  #card{rank=ace,suit=heart}]}, Ans1),
+
+    Ans2 = hand:get_highest_hand([
+            #card{rank=two,suit=diamond},
             #card{rank=three,suit=heart},
-            #card{rank=four,suit=heart},
-            #card{rank=five,suit=heart}]),
-    ?assertEqual(#hand{name=straight, rank_vals=[5,4,3,2,1]}, Hand4).
-
+            #card{rank=four,suit=spade},
+            #card{rank=six,suit=heart},
+            #card{rank=seven,suit=spade},
+            #card{rank=eight,suit=heart},
+            #card{rank=ten,suit=heart}]),
+    ?assertMatch({#hand{name=high_card}, 
+                [#card{rank=four,suit=spade},
+                 #card{rank=six,suit=heart},
+                 #card{rank=seven,suit=spade},
+                 #card{rank=eight,suit=heart},
+                 #card{rank=ten,suit=heart}]}, Ans2).
