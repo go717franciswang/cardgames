@@ -1,2 +1,3 @@
 -record(card, {suit, rank}).
 -record(seat, {position, player, money, bet=0, last_action}).
+-record(hand, {name, rank_vals=[]}).
