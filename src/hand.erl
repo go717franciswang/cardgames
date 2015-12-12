@@ -23,17 +23,12 @@ get_straight_flush(Cards) ->
     end.
 
 get_straight(Cards) ->
-    case get_ranks(Cards) of
-        [two,three,four,five,ace] -> #hand{name=straight, rank_vals=[5,4,3,2,1]};
-        [two,three,four,five,six] -> #hand{name=straight, rank_vals=[6,5,4,3,2]};
-        [three,four,five,six,seven] -> #hand{name=straight, rank_vals=[7,6,5,4,3]};
-        [four,five,six,seven,eight] -> #hand{name=straight, rank_vals=[8,7,6,5,4]};
-        [five,six,seven,eight,nine] -> #hand{name=straight, rank_vals=[9,8,7,6,5]};
-        [six,seven,eight,nine,ten] -> #hand{name=straight, rank_vals=[10,9,8,7,6]};
-        [seven,eight,nine,ten,jack] -> #hand{name=straight, rank_vals=[11,10,9,8,7]};
-        [eight,nine,ten,jack,queen] -> #hand{name=straight, rank_vals=[12,11,10,9,8]};
-        [nine,ten,jack,queen,king] -> #hand{name=straight, rank_vals=[13,12,11,10,9]};
-        [ten,jack,queen,king,ace] -> #hand{name=straight, rank_vals=[14,13,12,11,10]};
+    RankVals = get_rank_vals(Cards),
+    [Min|_] = RankVals,
+    StraightSeq = lists:seq(Min,Min+4),
+    case RankVals of
+        [2,3,4,5,14] -> #hand{name=straight, rank_vals=[5,4,3,2,1]};
+        StraightSeq -> #hand{name=straight, rank_vals=lists:reverse(RankVals)};
         _ -> undefined
     end.
 
@@ -41,7 +36,7 @@ get_flush(Cards) ->
     case get_suits(Cards) of
         [S,S,S,S,S] -> 
             #hand{name=flush, 
-                rank_vals=lists:reverse(lists:sort(get_rank_vals(Cards)))};
+                rank_vals=lists:reverse(get_rank_vals(Cards))};
         _ -> undefined
     end.
 
