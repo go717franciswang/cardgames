@@ -1,6 +1,7 @@
 -module(hand).
 -export([highest_hand/1, get_royal_flush/1, get_straight_flush/1, get_straight/1,
-         get_flush/1]).
+         get_flush/1, get_four_of_a_kind/1, get_full_house/1, get_three_of_a_kind/1,
+         get_two_pair/1, get_one_pair/1]).
 
 -include("records.hrl").
 
@@ -39,6 +40,53 @@ get_flush(Cards) ->
                 rank_vals=lists:reverse(get_rank_vals(Cards))};
         _ -> undefined
     end.
+
+get_four_of_a_kind(Cards) ->
+    RankVals = get_rank_vals(Cards),
+    case RankVals of
+        [N,N,N,N,M] -> #hand{name=four_of_a_kind, rank_vals=[N,N,N,N,M]};
+        [M,N,N,N,N] -> #hand{name=four_of_a_kind, rank_vals=[N,N,N,N,M]};
+        _ -> undefined
+    end.
+
+get_full_house(Cards) ->
+    RankVals = get_rank_vals(Cards),
+    case RankVals of
+        [N,N,N,M,M] -> #hand{name=full_house, rank_vals=[N,N,N,M,M]};
+        [M,M,N,N,N] -> #hand{name=full_house, rank_vals=[N,N,N,M,M]};
+        _ -> undefined
+    end.
+
+get_three_of_a_kind(Cards) ->
+    RankVals = get_rank_vals(Cards),
+    case RankVals of
+        [A,A,A,B,C] -> #hand{name=three_of_a_kind, rank_vals=[A,A,A,C,B]};
+        [B,A,A,A,C] -> #hand{name=three_of_a_kind, rank_vals=[A,A,A,C,B]};
+        [B,C,A,A,A] -> #hand{name=three_of_a_kind, rank_vals=[A,A,A,C,B]};
+        _ -> undefined
+    end.
+
+get_two_pair(Cards) ->
+    RankVals = get_rank_vals(Cards),
+    case RankVals of
+        [A,A,B,B,C] -> #hand{name=two_pair, rank_vals=[B,B,A,A,C]};
+        [A,A,C,B,B] -> #hand{name=two_pair, rank_vals=[B,B,A,A,C]};
+        [C,A,A,B,B] -> #hand{name=two_pair, rank_vals=[B,B,A,A,C]};
+        _ -> undefined
+    end.
+
+get_one_pair(Cards) ->
+    RankVals = get_rank_vals(Cards),
+    case RankVals of
+        [A,A,B,C,D] -> #hand{name=one_pair, rank_vals=[A,A,D,C,B]};
+        [B,A,A,C,D] -> #hand{name=one_pair, rank_vals=[A,A,D,C,B]};
+        [B,C,A,A,D] -> #hand{name=one_pair, rank_vals=[A,A,D,C,B]};
+        [B,C,D,A,A] -> #hand{name=one_pair, rank_vals=[A,A,D,C,B]};
+        _ -> undefined
+    end.
+
+get_high_card(Cards) ->
+    #hand{name=high_card, rank_vals=lists:reverse(get_rank_vals(Cards)).
 
 get_ranks(Cards) -> lists:map(fun(#card{rank=R}) -> R end, Cards).
 get_suits(Cards) -> lists:map(fun(#card{suit=S}) -> S end, Cards).
