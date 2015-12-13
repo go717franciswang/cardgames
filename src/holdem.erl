@@ -75,12 +75,18 @@ game_in_progess({take_turn, Action}, _From, #state{seats=Seats,actor=Actor,stage
         {true,preflop} -> draw_community_cards_(StateData, 3, flop);
         {true,flop} -> draw_community_cards_(StateData, 1, turn);
         {true,turn} -> draw_community_cards_(StateData, 1, river);
+        {true,river} -> show_down_(StateData);
         {false,_} -> StateData
+    end,
+
+    NewStateName = case Stage of
+        show_down -> waiting_for_players;
+        _ -> game_in_progess
     end,
 
     NextActor = seats:get_next_seat(Seats, Actor),
     player:signal_turn(NextActor#seat.player),
-    {reply, ok, game_in_progess, NewState#state{actor=NextActor}}.
+    {reply, ok, NewStateName, NewState#state{actor=NextActor}}.
 
 handle_event(_Event, StateName, StateData) ->
 	{next_state, StateName, StateData}.
@@ -112,4 +118,25 @@ draw_community_cards_(#state{community_cards=CC,deck=Deck,seats=Seats}=State, N,
     seats:pot_bets(Seats),
     State#state{community_cards=NewCC,stage=NextStage}.
 
+show_down_(#state{community_cards=CC,deck=Deck,seats=Seats}=State) ->
+    ActiveSeats = seats:show_active_seats(Seats),
+    PlayerHands = lists:map(
+        fun(#seat{player=Player}) ->
+                Cards = player:show_cards(Player),
+                {Hand,FiveCards} = hand:get_highest_hand(Cards++CC),
+                {Player,Hand,FiveCards}
+        end, ActiveSeats),
+
+    PlayerHandsRanked = lists:sort(
+        fun({_,HandA,_},{_,HandB,_}) -> 
+                hand:is_higher_hand(HandA,HandB)
+        end, PlayerHands),
+    [{_,BestHand,_}|_] = PlayerHandsRanked,
+
+    WinningPlayerHands = lists:takewhile(
+        fun({_,Hand,_}) -> Hand == BestHand end, PlayerHandsRanked),
+
+    io:format("winning player hands: ~p~n", [WinningPlayerHands]),
+    deck:stop(Deck),
+    State#state{community_cards=[],deck=undefined,stage=show_down}.
 

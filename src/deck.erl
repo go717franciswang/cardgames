@@ -23,14 +23,9 @@
 start_link() ->
 	gen_server:start_link(?MODULE, [], []).
 
-show_deck(Pid) ->
-    gen_server:call(Pid, show_deck).
-
-shuffle(Pid) ->
-    gen_server:call(Pid, shuffle).
-
-draw_cards(Pid, Count) ->
-    gen_server:call(Pid, {draw_cards, Count}).
+show_deck(Pid) -> gen_server:call(Pid, show_deck).
+shuffle(Pid) -> gen_server:call(Pid, shuffle).
+draw_cards(Pid, Count) -> gen_server:call(Pid, {draw_cards, Count}).
 
 %% gen_server.
 

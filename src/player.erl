@@ -23,29 +23,14 @@
 start_link() ->
 	gen_fsm:start_link(?MODULE, [], []).
 
-create_table(Pid) ->
-    gen_fsm:sync_send_event(Pid, create_table).
-
-join_table(Pid, TableId) ->
-    gen_fsm:sync_send_event(Pid, {join_table, TableId}).
-
-start_game(Pid) ->
-    gen_fsm:sync_send_event(Pid, start_game).
-
-deal_card(Pid, Card) ->
-    gen_fsm:send_event(Pid, {deal_card, Card}).
-
-show_cards(Pid) ->
-    gen_fsm:sync_send_event(Pid, show_cards).
-
-new_player(Pid, Player) ->
-    gen_fsm:send_event(Pid, {new_player, Player}).
-
-signal_turn(Pid) ->
-    gen_fsm:send_event(Pid, signal_turn).
-
-take_turn(Pid, Action) ->
-    gen_fsm:sync_send_event(Pid, {take_turn, Action}).
+create_table(Pid) -> gen_fsm:sync_send_event(Pid, create_table).
+join_table(Pid, TableId) -> gen_fsm:sync_send_event(Pid, {join_table, TableId}).
+start_game(Pid) -> gen_fsm:sync_send_event(Pid, start_game).
+deal_card(Pid, Card) -> gen_fsm:send_event(Pid, {deal_card, Card}).
+show_cards(Pid) -> gen_fsm:sync_send_event(Pid, show_cards).
+new_player(Pid, Player) -> gen_fsm:send_event(Pid, {new_player, Player}).
+signal_turn(Pid) -> gen_fsm:send_event(Pid, signal_turn).
+take_turn(Pid, Action) -> gen_fsm:sync_send_event(Pid, {take_turn, Action}).
 
 %% gen_fsm.
 
