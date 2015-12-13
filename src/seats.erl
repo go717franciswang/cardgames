@@ -78,9 +78,13 @@ handle_call(get_blinds, _From, State) ->
 handle_call({place_bet, Seat, BetAmount}, _From, State) ->
     NewState = place_bet_(State, Seat, BetAmount),
     {reply, ok, NewState};
-handle_call({deal_card, #seat{player=Player}, Card}, _From, State) ->
+handle_call({deal_card, #seat{position=Pos,player=Player}, Card}, _From, State) ->
     player:deal_card(Player, Card),
-    {reply, ok, State};
+    Seat = lists:keyfind(Pos,#seat.position,State#state.seats),
+    Cards = Seat#seat.cards,
+    NewSeat = Seat#seat{cards=[Card|Cards]},
+    NewSeats = lists:keystore(Pos, #seat.position, State#state.seats, NewSeat),
+    {reply, ok, State#state{seats=NewSeats}};
 handle_call({get_next_seat, Seat}, _From, State) ->
     {reply, get_next_seat_(State, Seat), State};
 handle_call({handle_action, Actor, call}, _From, State) ->

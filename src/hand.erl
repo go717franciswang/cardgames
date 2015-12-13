@@ -2,7 +2,7 @@
 -export([get_hand/1, get_royal_flush/1, get_straight_flush/1, get_straight/1,
          get_flush/1, get_four_of_a_kind/1, get_full_house/1, get_three_of_a_kind/1,
          get_two_pair/1, get_one_pair/1, get_high_card/1, get_highest_hand/1, 
-         choose/2]).
+         choose/2, is_higher_hand/2]).
 
 -include("records.hrl").
 

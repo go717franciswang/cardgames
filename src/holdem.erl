@@ -121,8 +121,7 @@ draw_community_cards_(#state{community_cards=CC,deck=Deck,seats=Seats}=State, N,
 show_down_(#state{community_cards=CC,deck=Deck,seats=Seats}=State) ->
     ActiveSeats = seats:show_active_seats(Seats),
     PlayerHands = lists:map(
-        fun(#seat{player=Player}) ->
-                Cards = player:show_cards(Player),
+        fun(#seat{player=Player, cards=Cards}) ->
                 {Hand,FiveCards} = hand:get_highest_hand(Cards++CC),
                 {Player,Hand,FiveCards}
         end, ActiveSeats),

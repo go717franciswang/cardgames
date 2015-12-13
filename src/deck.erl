@@ -2,7 +2,7 @@
 -behaviour(gen_server).
 
 %% API.
--export([start_link/0]).
+-export([start_link/0, stop/1]).
 -export([show_deck/1, shuffle/1, draw_cards/2]).
 
 %% gen_server.
@@ -26,6 +26,7 @@ start_link() ->
 show_deck(Pid) -> gen_server:call(Pid, show_deck).
 shuffle(Pid) -> gen_server:call(Pid, shuffle).
 draw_cards(Pid, Count) -> gen_server:call(Pid, {draw_cards, Count}).
+stop(Pid) -> gen_server:stop(Pid).
 
 %% gen_server.
 
