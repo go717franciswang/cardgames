@@ -42,8 +42,10 @@ hand_name_to_val(royal_flush) -> 10.
 get_hand(Cards) ->
     HandGetters = [
         fun ?MODULE:get_royal_flush/1, 
+        fun ?MODULE:get_straight_flush/1, 
         fun ?MODULE:get_four_of_a_kind/1, 
         fun ?MODULE:get_full_house/1, 
+        fun ?MODULE:get_flush/1, 
         fun ?MODULE:get_straight/1, 
         fun ?MODULE:get_three_of_a_kind/1, 
         fun ?MODULE:get_two_pair/1, 
