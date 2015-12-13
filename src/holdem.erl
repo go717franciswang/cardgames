@@ -3,7 +3,7 @@
 
 %% API.
 -export([start_link/0]).
--export([join/2, start_game/1, get_seats/1, take_turn/2]).
+-export([join/2, start_game/1, get_seats/1, take_turn/2, show_cards/2]).
 
 %% gen_fsm.
 -export([init/1]).
@@ -24,18 +24,11 @@
 start_link() ->
 	gen_fsm:start_link(?MODULE, [], []).
 
-join(Pid, Player) ->
-    io:format("New player has joined~n"),
-    gen_fsm:sync_send_event(Pid, {join, Player}).
-
-start_game(Pid) ->
-    gen_fsm:sync_send_event(Pid, start).
-
-get_seats(Pid) ->
-    gen_fsm:sync_send_event(Pid, get_seats).
-
-take_turn(Pid, Action) ->
-    gen_fsm:sync_send_event(Pid, {take_turn, Action}).
+join(Pid, Player) -> gen_fsm:sync_send_event(Pid, {join, Player}).
+start_game(Pid) -> gen_fsm:sync_send_event(Pid, start).
+get_seats(Pid) -> gen_fsm:sync_send_event(Pid, get_seats).
+take_turn(Pid, Action) -> gen_fsm:sync_send_event(Pid, {take_turn, Action}).
+show_cards(Pid, Player) -> gen_fsm:sync_send_event(Pid, {show_cards, Player}).
 
 %% gen_fsm.
 
@@ -86,7 +79,10 @@ game_in_progess({take_turn, Action}, _From, #state{seats=Seats,actor=Actor,stage
 
     NextActor = seats:get_next_seat(Seats, Actor),
     player:signal_turn(NextActor#seat.player),
-    {reply, ok, NewStateName, NewState#state{actor=NextActor}}.
+    {reply, ok, NewStateName, NewState#state{actor=NextActor}};
+game_in_progess({show_cards, Player}, _From, StateData) ->
+    Cards = seats:show_cards_from_player(StateData#state.seats, Player),
+    {reply, Cards, game_in_progess, StateData}.
 
 handle_event(_Event, StateName, StateData) ->
 	{next_state, StateName, StateData}.
@@ -120,22 +116,24 @@ draw_community_cards_(#state{community_cards=CC,deck=Deck,seats=Seats}=State, N,
 
 show_down_(#state{community_cards=CC,deck=Deck,seats=Seats}=State) ->
     ActiveSeats = seats:show_active_seats(Seats),
-    PlayerHands = lists:map(
-        fun(#seat{player=Player, cards=Cards}) ->
+    SeatHands = lists:map(
+        fun(#seat{cards=Cards}=Seat) ->
                 {Hand,FiveCards} = hand:get_highest_hand(Cards++CC),
-                {Player,Hand,FiveCards}
+                {Seat,Hand,FiveCards}
         end, ActiveSeats),
 
-    PlayerHandsRanked = lists:sort(
+    SeatHandsRanked = lists:sort(
         fun({_,HandA,_},{_,HandB,_}) -> 
                 hand:is_higher_hand(HandA,HandB)
-        end, PlayerHands),
-    [{_,BestHand,_}|_] = PlayerHandsRanked,
+        end, SeatHands),
+    [{_,BestHand,_}|_] = SeatHandsRanked,
 
-    WinningPlayerHands = lists:takewhile(
-        fun({_,Hand,_}) -> Hand == BestHand end, PlayerHandsRanked),
+    WinningSeatHands = lists:takewhile(
+        fun({_,Hand,_}) -> Hand == BestHand end, SeatHandsRanked),
 
-    io:format("winning player hands: ~p~n", [WinningPlayerHands]),
+    io:format("winning player hands: ~p~n", [WinningSeatHands]),
+    seats:distribute_winning(Seats, [S || {S,_,_} <- WinningSeatHands]),
+    seats:prepare_new_game(Seats),
     deck:stop(Deck),
     State#state{community_cards=[],deck=undefined,stage=show_down}.
 

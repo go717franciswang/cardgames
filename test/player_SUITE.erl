@@ -64,7 +64,9 @@ testGameInitializationFlow(_Config) ->
     player:take_turn(FirstActor#seat.player, check),
     player:take_turn(Dealer#seat.player, check),
     player:take_turn(SB#seat.player, check),
-    player:take_turn(BB#seat.player, check).
+    player:take_turn(BB#seat.player, check),
+
+    io:format("current seats: ~p~n", [seats:show_active_seats(Seats)]).
 
 
 

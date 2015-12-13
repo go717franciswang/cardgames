@@ -7,7 +7,8 @@
         rotate_dealer_button/1, get_blinds/1, get_preflop_actor/1, 
         get_flop_actor/1, place_bet/3, deal_card/3, get_next_seat/2,
         handle_action/3, is_betting_complete/1, clear_last_action/1,
-        pot_bets/1, get_pot/1]).
+        pot_bets/1, get_pot/1, distribute_winning/2, prepare_new_game/1,
+        show_cards_from_player/2]).
 
 %% gen_server.
 -export([init/1]).
@@ -43,6 +44,9 @@ is_betting_complete(Pid) -> gen_server:call(Pid, is_betting_complete).
 clear_last_action(Pid) -> gen_server:call(Pid, clear_last_action).
 pot_bets(Pid) -> gen_server:call(Pid, pot_bets).
 get_pot(Pid) -> gen_server:call(Pid, get_pot).
+distribute_winning(Pid,WinningSeats) -> gen_server:call(Pid, {distribute_winning,WinningSeats}).
+prepare_new_game(Pid) -> gen_server:call(Pid, prepare_new_game).
+show_cards_from_player(Pid, Player) -> gen_server:call(Pid, {show_cards_from_player, Player}).
 
 %% gen_server.
 
@@ -138,6 +142,22 @@ handle_call(pot_bets, _From, #state{seats=Seats,pot=Pot}=State) ->
     {reply, ok, State#state{seats=NewSeats,pot=NewPot}};
 handle_call(get_pot, _From, State) ->
     {reply, State#state.pot, State};
+handle_call({distribute_winning, WinningSeats}, _From, #state{pot=Pot,seats=OSeats}=State) ->
+    WinningPerPlayer = Pot / length(WinningSeats),
+    NewSeats = lists:foldl(
+        fun(#seat{position=Pos}, Seats) ->
+                Seat = lists:keyfind(Pos, #seat.position, Seats),
+                Money = Seat#seat.money,
+                NewSeat = Seat#seat{money=Money+WinningPerPlayer},
+                lists:keystore(Pos, #seat.position, Seats, NewSeat)
+        end, OSeats, WinningSeats),
+    {reply, ok, State#state{seats=NewSeats,pot=0}};
+handle_call(prepare_new_game, _From, #state{seats=Seats}=State) ->
+    NewSeats = [Seat#seat{last_action=undefined,cards=[]} || Seat <- Seats],
+    {reply, ok, State#state{seats=NewSeats}};
+handle_call({show_cards_from_player,Player}, _From, #state{seats=Seats}=State) ->
+    Seat = lists:keyfind(Player, #seat.player, Seats),
+    {reply, Seat#seat.cards, State};
 handle_call(_Request, _From, State) ->
 	{reply, ignored, State}.
 
@@ -198,4 +218,5 @@ log_action_(State, #seat{position=Pos}, Action) ->
     NewSeat = Seat#seat{last_action=Action},
     NewSeats = lists:keystore(Pos, #seat.position, State#state.seats, NewSeat),
     State#state{seats=NewSeats}.
+
 

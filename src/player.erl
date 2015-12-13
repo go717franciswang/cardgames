@@ -14,7 +14,7 @@
 -export([terminate/3]).
 -export([code_change/4]).
 
--record(state, {game, cards=[]
+-record(state, {game
 }).
 
 %% API.
@@ -47,7 +47,8 @@ lobby({join_table, TableId}, _From, StateData) ->
 	{reply, Reply, in_game, StateData#state{game=Pid}}.
 
 in_game(show_cards, _From, StateData) ->
-    {reply, StateData#state.cards, in_game, StateData};
+    Cards = holdem:show_cards(StateData#state.game, self()),
+    {reply, Cards, in_game, StateData};
 in_game(start_game, _From, StateData) ->
     Reply = holdem:start_game(StateData#state.game),
     {reply, Reply, in_game, StateData};
@@ -58,9 +59,8 @@ in_game({new_player, Player}, StateData) ->
     io:format("~p new player: ~p~n", [self(), Player]),
     {next_state, in_game, StateData};
 in_game({deal_card, Card}, StateData) ->
-    NewCards = [Card|StateData#state.cards],
     io:format("~p got card: ~p~n", [self(), Card]),
-    {next_state, in_game, StateData#state{cards=NewCards}};
+    {next_state, in_game, StateData};
 in_game(signal_turn, StateData) ->
     io:format("~p got signal to take turn~n", [self()]),
     {next_state, in_game, StateData}.
