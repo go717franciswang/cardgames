@@ -64,16 +64,18 @@ game_in_progess({take_turn, Action}, _From, #state{seats=Seats,actor=Actor,stage
     io:format("received action ~p~n", [Action]),
     seats:handle_action(Seats, Actor, Action),
 
-    NewState = case {seats:is_betting_complete(Seats), Stage} of
-        {true,preflop} -> draw_community_cards_(StateData, 3, flop);
-        {true,flop} -> draw_community_cards_(StateData, 1, turn);
-        {true,turn} -> draw_community_cards_(StateData, 1, river);
-        {true,river} -> show_down_(StateData);
-        {false,_} -> StateData
+    NewState = case {seats:is_hand_over(Seats), seats:is_betting_complete(Seats), Stage} of
+        {true,_,_} -> hand_over_(StateData);
+        {_,true,preflop} -> draw_community_cards_(StateData, 3, flop);
+        {_,true,flop} -> draw_community_cards_(StateData, 1, turn);
+        {_,true,turn} -> draw_community_cards_(StateData, 1, river);
+        {_,true,river} -> show_down_(StateData);
+        _ -> StateData
     end,
 
-    NewStateName = case Stage of
+    NewStateName = case NewState#state.stage of
         show_down -> waiting_for_players;
+        hand_over -> waiting_for_players;
         _ -> game_in_progess
     end,
 
@@ -132,8 +134,18 @@ show_down_(#state{community_cards=CC,deck=Deck,seats=Seats}=State) ->
         fun({_,Hand,_}) -> Hand == BestHand end, SeatHandsRanked),
 
     io:format("winning player hands: ~p~n", [WinningSeatHands]),
+    seats:pot_bets(Seats),
     seats:distribute_winning(Seats, [S || {S,_,_} <- WinningSeatHands]),
     seats:prepare_new_game(Seats),
     deck:stop(Deck),
     State#state{community_cards=[],deck=undefined,stage=show_down}.
+
+hand_over_(#state{seats=Seats,deck=Deck}=State) ->
+    ActiveSeats = seats:show_active_seats(Seats),
+    [Winner] = [X || X <- ActiveSeats, X#seat.last_action /= fold],
+    seats:pot_bets(Seats),
+    seats:distribute_winning([Winner]),
+    seats:prepare_new_game(Seats),
+    deck:stop(Deck),
+    State#state{community_cards=[],deck=undefined,stage=hand_over}.
 
