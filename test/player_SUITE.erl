@@ -1,18 +1,14 @@
 -module(player_SUITE).
 -export([all/0, init_per_testcase/2, end_per_testcase/2]).
--export([testGameInitializationFlow/1]).
+-export([testShowDown/1]).
+-include_lib("common_test/include/ct.hrl").
 -include("records.hrl").
 
-all() -> [testGameInitializationFlow].
+all() -> [testShowDown].
 
-init_per_testcase(testGameInitializationFlow, Config) ->
-	cardgames_sup:start_link(),
-    Config.
+init_per_testcase(_, Config) ->
+    {ok, GamesSup} = cardgames_sup:start_link(),
 
-end_per_testcase(testGameInitializationFlow, Config) ->
-    ok.
-
-testGameInitializationFlow(_Config) ->
     {ok, Player1} = players_sup:create_player(),
     {ok, Player2} = players_sup:create_player(),
     {ok, Player3} = players_sup:create_player(),
@@ -40,6 +36,23 @@ testGameInitializationFlow(_Config) ->
 
     % make sure correct blinds are set
     {SB,BB} = seats:get_blinds(Seats),
+
+    [{games_sup,GamesSup},
+     {seats,Seats},
+     {first_actor,FirstActor},
+     {dealer,Dealer},
+     {sb,SB},
+     {bb,BB} | Config].
+
+end_per_testcase(_, _Config) ->
+    ok.
+
+testShowDown(Config) ->
+    Seats = ?config(seats, Config),
+    FirstActor = ?config(first_actor, Config),
+    Dealer = ?config(dealer, Config),
+    SB = ?config(sb, Config),
+    BB = ?config(bb, Config),
 
     % every one play their hand
     % preflop
