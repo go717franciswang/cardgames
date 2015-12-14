@@ -1,10 +1,10 @@
 -module(player_SUITE).
 -export([all/0, init_per_testcase/2, end_per_testcase/2]).
--export([testShowDown/1]).
+-export([testShowDown/1, testHandOver/1]).
 -include_lib("common_test/include/ct.hrl").
 -include("records.hrl").
 
-all() -> [testShowDown].
+all() -> [testShowDown, testHandOver].
 
 init_per_testcase(_, Config) ->
     {ok, GamesSup} = cardgames_sup:start_link(),
@@ -81,5 +81,20 @@ testShowDown(Config) ->
 
     io:format("current seats: ~p~n", [seats:show_active_seats(Seats)]).
 
+testHandOver(Config) ->
+    Seats = ?config(seats, Config),
+    FirstActor = ?config(first_actor, Config),
+    Dealer = ?config(dealer, Config),
+    SB = ?config(sb, Config),
+    BB = ?config(bb, Config),
+
+    % every one play their hand
+    % preflop
+    player:take_turn(FirstActor#seat.player, call),
+    player:take_turn(Dealer#seat.player, fold),
+    player:take_turn(SB#seat.player, fold),
+    player:take_turn(BB#seat.player, fold),
+
+    io:format("current seats: ~p~n", [seats:show_active_seats(Seats)]).
 
 

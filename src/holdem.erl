@@ -144,7 +144,7 @@ hand_over_(#state{seats=Seats,deck=Deck}=State) ->
     ActiveSeats = seats:show_active_seats(Seats),
     [Winner] = [X || X <- ActiveSeats, X#seat.last_action /= fold],
     seats:pot_bets(Seats),
-    seats:distribute_winning([Winner]),
+    seats:distribute_winning(Seats, [Winner]),
     seats:prepare_new_game(Seats),
     deck:stop(Deck),
     State#state{community_cards=[],deck=undefined,stage=hand_over}.
