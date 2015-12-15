@@ -60,8 +60,10 @@ waiting_for_players(start, _From, #state{seats=Seats}=StateData) ->
 
 game_in_progess(get_seats, _From, StateData) ->
     {reply, StateData#state.seats, game_in_progess, StateData};
+game_in_progess({take_turn,_}, {Player,_Tag}, #state{actor=Actor}=State) when Player /= Actor#seat.player ->
+    {reply, {error, not_your_turn}, game_in_progess, State};
 game_in_progess({take_turn, Action}, _From, #state{seats=Seats,actor=Actor,stage=Stage}=StateData) ->
-    io:format("received action ~p~n", [Action]),
+    io:format("received action ~p from ~p~n", [Action, Actor#seat.player]),
     seats:handle_action(Seats, Actor, Action),
     IsHandOver = seats:is_hand_over(Seats),
     IsBettingComplete = seats:is_betting_complete(Seats),

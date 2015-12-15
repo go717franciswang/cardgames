@@ -142,7 +142,7 @@ handle_call(pot_bets, _From, #state{seats=Seats,pot=Pot}=State) ->
         fun(#seat{bet=Bet}=Seat, {S, P}) -> 
                 {[Seat#seat{bet=0}|S], P+Bet}
         end, {[], Pot}, Seats),
-    {reply, ok, State#state{seats=NewSeats,pot=NewPot}};
+    {reply, ok, State#state{seats=lists:reverse(NewSeats),pot=NewPot}};
 handle_call(get_pot, _From, State) ->
     {reply, State#state.pot, State};
 handle_call({distribute_winning, WinningSeats}, _From, #state{pot=Pot,seats=OSeats}=State) ->
@@ -154,7 +154,7 @@ handle_call({distribute_winning, WinningSeats}, _From, #state{pot=Pot,seats=OSea
                 NewSeat = Seat#seat{money=Money+WinningPerPlayer},
                 lists:keystore(Pos, #seat.position, Seats, NewSeat)
         end, OSeats, WinningSeats),
-    {reply, ok, State#state{seats=NewSeats,pot=0}};
+    {reply, ok, State#state{seats=lists:reverse(NewSeats),pot=0}};
 handle_call(prepare_new_game, _From, #state{seats=Seats}=State) ->
     NewSeats = [Seat#seat{last_action=undefined,cards=[]} || Seat <- Seats],
     {reply, ok, State#state{seats=NewSeats}};
@@ -202,7 +202,7 @@ get_nonfolded_seats_(#state{seats=Seats}) ->
 get_next_seat_(State, #seat{position=Pos}) ->
     ActiveSeats = get_active_seats_(State),
     {Front, Back} = lists:splitwith(fun(#seat{position=P}) -> P /= Pos end, ActiveSeats),
-    [_,Next|_] = lists:concat([Back, Front]),
+    [_,Next|_] = Back++Front,
     Next.
 
 % BetAmount represent final bet amount, it is not incremental change
