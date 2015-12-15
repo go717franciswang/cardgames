@@ -63,14 +63,16 @@ game_in_progess(get_seats, _From, StateData) ->
 game_in_progess({take_turn, Action}, _From, #state{seats=Seats,actor=Actor,stage=Stage}=StateData) ->
     io:format("received action ~p~n", [Action]),
     seats:handle_action(Seats, Actor, Action),
+    IsHandOver = seats:is_hand_over(Seats),
+    IsBettingComplete = seats:is_betting_complete(Seats),
 
-    NewState = case {seats:is_hand_over(Seats), seats:is_betting_complete(Seats), Stage} of
+    NewState = case {IsHandOver, IsBettingComplete, Stage} of
         {true,_,_} -> hand_over_(StateData);
         {_,true,preflop} -> draw_community_cards_(StateData, 3, flop);
         {_,true,flop} -> draw_community_cards_(StateData, 1, turn);
         {_,true,turn} -> draw_community_cards_(StateData, 1, river);
         {_,true,river} -> show_down_(StateData);
-        _ -> StateData
+        _ -> StateData#state{actor=seats:get_next_seat(Seats,Actor)}
     end,
 
     NewStateName = case NewState#state.stage of
@@ -79,9 +81,12 @@ game_in_progess({take_turn, Action}, _From, #state{seats=Seats,actor=Actor,stage
         _ -> game_in_progess
     end,
 
-    NextActor = seats:get_next_seat(Seats, Actor),
-    player:signal_turn(NextActor#seat.player),
-    {reply, ok, NewStateName, NewState#state{actor=NextActor}};
+    case NewState#state.actor of
+        undefined -> ok;
+        NextActor -> player:signal_turn(NextActor#seat.player)
+    end,
+
+    {reply, ok, NewStateName, NewState};
 game_in_progess({show_cards, Player}, _From, StateData) ->
     Cards = seats:show_cards_from_player(StateData#state.seats, Player),
     {reply, Cards, game_in_progess, StateData}.
@@ -114,7 +119,8 @@ draw_community_cards_(#state{community_cards=CC,deck=Deck,seats=Seats}=State, N,
     io:format("community cards: ~p~n", [NewCC]),
     seats:clear_last_action(Seats),
     seats:pot_bets(Seats),
-    State#state{community_cards=NewCC,stage=NextStage}.
+    NextActor = seats:get_flop_actor(Seats),
+    State#state{community_cards=NewCC,stage=NextStage,actor=NextActor}.
 
 show_down_(#state{community_cards=CC,deck=Deck,seats=Seats}=State) ->
     ActiveSeats = seats:show_active_seats(Seats),
@@ -138,7 +144,7 @@ show_down_(#state{community_cards=CC,deck=Deck,seats=Seats}=State) ->
     seats:distribute_winning(Seats, [S || {S,_,_} <- WinningSeatHands]),
     seats:prepare_new_game(Seats),
     deck:stop(Deck),
-    State#state{community_cards=[],deck=undefined,stage=show_down}.
+    State#state{community_cards=[],deck=undefined,stage=show_down,actor=undefined}.
 
 hand_over_(#state{seats=Seats,deck=Deck}=State) ->
     ActiveSeats = seats:show_active_seats(Seats),
@@ -147,5 +153,5 @@ hand_over_(#state{seats=Seats,deck=Deck}=State) ->
     seats:distribute_winning(Seats, [Winner]),
     seats:prepare_new_game(Seats),
     deck:stop(Deck),
-    State#state{community_cards=[],deck=undefined,stage=hand_over}.
+    State#state{community_cards=[],deck=undefined,stage=hand_over,actor=undefined}.
 

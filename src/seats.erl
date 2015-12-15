@@ -72,12 +72,14 @@ handle_call(rotate_dealer_button, _From, State) ->
     [NewDealer|_] = lists:filter(fun(Seat) -> Seat#seat.player /= undefined end, SearchSeats),
     NewDealerButtonPos = NewDealer#seat.position,
     {reply, ok, State#state{dealer_button_pos=NewDealerButtonPos}};
-handle_call(get_dealer, _From, #state{seats=Seats, dealer_button_pos=DealerPos}=State) ->
-    Dealer = lists:keyfind(DealerPos, #seat.position, Seats),
-    {reply, Dealer, State};
+handle_call(get_dealer, _From, State) ->
+    {reply, get_dealer_(State), State};
 handle_call(get_preflop_actor, _From, State) ->
     {_,B} = get_blinds_(State),
     {reply, get_next_seat_(State, B), State};
+handle_call(get_flop_actor, _From, State) ->
+    Dealer = get_dealer_(State),
+    {reply, get_next_seat_(State, Dealer), State};
 handle_call(get_blinds, _From, State) ->
     {reply, get_blinds_(State), State};
 handle_call({place_bet, Seat, BetAmount}, _From, State) ->
@@ -225,5 +227,8 @@ log_action_(State, #seat{position=Pos}, Action) ->
     NewSeat = Seat#seat{last_action=Action},
     NewSeats = lists:keystore(Pos, #seat.position, State#state.seats, NewSeat),
     State#state{seats=NewSeats}.
+
+get_dealer_(#state{seats=Seats, dealer_button_pos=DealerPos}) ->
+    lists:keyfind(DealerPos, #seat.position, Seats).
 
 

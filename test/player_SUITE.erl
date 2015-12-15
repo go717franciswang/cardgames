@@ -54,7 +54,6 @@ testShowDown(Config) ->
     SB = ?config(sb, Config),
     BB = ?config(bb, Config),
 
-    % every one play their hand
     % preflop
     player:take_turn(FirstActor#seat.player, call),
     player:take_turn(Dealer#seat.player, call),
@@ -62,22 +61,22 @@ testShowDown(Config) ->
     player:take_turn(BB#seat.player, check),
     
     % flop
-    player:take_turn(FirstActor#seat.player, check),
-    player:take_turn(Dealer#seat.player, check),
     player:take_turn(SB#seat.player, check),
     player:take_turn(BB#seat.player, check),
+    player:take_turn(FirstActor#seat.player, check),
+    player:take_turn(Dealer#seat.player, check),
 
     % turn
-    player:take_turn(FirstActor#seat.player, check),
-    player:take_turn(Dealer#seat.player, check),
     player:take_turn(SB#seat.player, check),
     player:take_turn(BB#seat.player, check),
+    player:take_turn(FirstActor#seat.player, check),
+    player:take_turn(Dealer#seat.player, check),
 
     % river
-    player:take_turn(FirstActor#seat.player, check),
-    player:take_turn(Dealer#seat.player, check),
     player:take_turn(SB#seat.player, check),
     player:take_turn(BB#seat.player, check),
+    player:take_turn(FirstActor#seat.player, check),
+    player:take_turn(Dealer#seat.player, check),
 
     io:format("current seats: ~p~n", [seats:show_active_seats(Seats)]).
 
@@ -88,8 +87,6 @@ testHandOver(Config) ->
     SB = ?config(sb, Config),
     BB = ?config(bb, Config),
 
-    % every one play their hand
-    % preflop
     player:take_turn(FirstActor#seat.player, call),
     player:take_turn(Dealer#seat.player, fold),
     player:take_turn(SB#seat.player, fold),
