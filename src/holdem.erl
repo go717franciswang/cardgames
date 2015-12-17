@@ -63,33 +63,12 @@ game_in_progess(get_seats, _From, StateData) ->
     {reply, StateData#state.seats, game_in_progess, StateData};
 game_in_progess({take_turn,_}, {Player,_Tag}, #state{actor=Actor}=State) when Player /= Actor#seat.player ->
     {reply, {error, not_your_turn}, game_in_progess, State};
-game_in_progess({take_turn, Action}, _From, #state{seats=Seats,actor=Actor,stage=Stage}=StateData) ->
-    io:format("received action ~p from ~p~n", [Action, Actor#seat.player]),
-    seats:handle_action(Seats, Actor, Action),
-    IsHandOver = seats:is_hand_over(Seats),
-    IsBettingComplete = seats:is_betting_complete(Seats),
-
-    NewState = case {IsHandOver, IsBettingComplete, Stage} of
-        {true,_,_} -> hand_over_(StateData);
-        {_,true,preflop} -> draw_community_cards_(StateData, 3, flop);
-        {_,true,flop} -> draw_community_cards_(StateData, 1, turn);
-        {_,true,turn} -> draw_community_cards_(StateData, 1, river);
-        {_,true,river} -> show_down_(StateData);
-        _ -> next_player_(StateData)
+game_in_progess({take_turn,Action}, _From, #state{actor_options=Options}=State) ->
+    {Reply, NewStateName, NewState} = case lists:member(Action, Options) of
+        false -> {{error, invalid_action}, game_in_progess, State};
+        true -> handle_action_(State, Action)
     end,
-
-    NewStateName = case NewState#state.stage of
-        show_down -> waiting_for_players;
-        hand_over -> waiting_for_players;
-        _ -> game_in_progess
-    end,
-
-    case NewState#state.actor of
-        undefined -> ok;
-        NextActor -> player:signal_turn(NextActor#seat.player, NewState#state.actor_options)
-    end,
-
-    {reply, ok, NewStateName, NewState};
+    {reply, Reply, NewStateName, NewState};
 game_in_progess({show_cards, Player}, _From, StateData) ->
     Cards = seats:show_cards_from_player(StateData#state.seats, Player),
     {reply, Cards, game_in_progess, StateData}.
@@ -115,6 +94,33 @@ deal_cards_(#state{seats=Seats,deck=Deck}=State,DealTo,TimesLeft) ->
     seats:deal_card(Seats, DealTo, Card),
     NextSeat = seats:get_next_seat(Seats, DealTo),
     deal_cards_(State, NextSeat, TimesLeft-1).
+
+handle_action_(#state{seats=Seats,actor=Actor,stage=Stage}=StateData, Action) ->
+    io:format("received action ~p from ~p~n", [Action, Actor#seat.player]),
+    seats:handle_action(Seats, Actor, Action),
+    IsHandOver = seats:is_hand_over(Seats),
+    IsBettingComplete = seats:is_betting_complete(Seats),
+
+    NewState = case {IsHandOver, IsBettingComplete, Stage} of
+        {true,_,_} -> hand_over_(StateData);
+        {_,true,preflop} -> draw_community_cards_(StateData, 3, flop);
+        {_,true,flop} -> draw_community_cards_(StateData, 1, turn);
+        {_,true,turn} -> draw_community_cards_(StateData, 1, river);
+        {_,true,river} -> show_down_(StateData);
+        _ -> next_player_(StateData)
+    end,
+
+    NewStateName = case NewState#state.stage of
+        show_down -> waiting_for_players;
+        hand_over -> waiting_for_players;
+        _ -> game_in_progess
+    end,
+
+    case NewState#state.actor of
+        undefined -> ok;
+        NextActor -> player:signal_turn(NextActor#seat.player, NewState#state.actor_options)
+    end,
+    {ok, NewStateName, NewState}.
 
 draw_community_cards_(#state{community_cards=CC,deck=Deck,seats=Seats}=State, N, NextStage) ->
     deck:draw_cards(Deck, 1), % burn card
