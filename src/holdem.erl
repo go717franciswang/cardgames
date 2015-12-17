@@ -14,7 +14,7 @@
 -export([terminate/3]).
 -export([code_change/4]).
 
--record(state, {deck, seats, actor, community_cards=[], stage
+-record(state, {deck, seats, actor, actor_options=[], community_cards=[], stage
 }).
 -include("records.hrl").
 
@@ -55,8 +55,9 @@ waiting_for_players(start, _From, #state{seats=Seats}=StateData) ->
     DealTimes = length(seats:show_active_seats(Seats))*2,
     deal_cards_(NewState, SmallBlind, DealTimes),
     ActorSeat = seats:get_preflop_actor(Seats),
-    player:signal_turn(ActorSeat#seat.player),
-    {reply, ok, game_in_progess, NewState#state{actor=ActorSeat, stage=preflop}}.
+    Options = seats:get_available_options(Seats, ActorSeat),
+    player:signal_turn(ActorSeat#seat.player, Options),
+    {reply, ok, game_in_progess, NewState#state{actor=ActorSeat, stage=preflop, actor_options=Options}}.
 
 game_in_progess(get_seats, _From, StateData) ->
     {reply, StateData#state.seats, game_in_progess, StateData};
@@ -74,7 +75,7 @@ game_in_progess({take_turn, Action}, _From, #state{seats=Seats,actor=Actor,stage
         {_,true,flop} -> draw_community_cards_(StateData, 1, turn);
         {_,true,turn} -> draw_community_cards_(StateData, 1, river);
         {_,true,river} -> show_down_(StateData);
-        _ -> StateData#state{actor=seats:get_next_seat(Seats,Actor)}
+        _ -> next_player_(StateData)
     end,
 
     NewStateName = case NewState#state.stage of
@@ -85,7 +86,7 @@ game_in_progess({take_turn, Action}, _From, #state{seats=Seats,actor=Actor,stage
 
     case NewState#state.actor of
         undefined -> ok;
-        NextActor -> player:signal_turn(NextActor#seat.player)
+        NextActor -> player:signal_turn(NextActor#seat.player, NewState#state.actor_options)
     end,
 
     {reply, ok, NewStateName, NewState};
@@ -122,7 +123,8 @@ draw_community_cards_(#state{community_cards=CC,deck=Deck,seats=Seats}=State, N,
     seats:clear_last_action(Seats),
     seats:pot_bets(Seats),
     NextActor = seats:get_flop_actor(Seats),
-    State#state{community_cards=NewCC,stage=NextStage,actor=NextActor}.
+    Options = seats:get_available_options(Seats, NextActor),
+    State#state{community_cards=NewCC,stage=NextStage,actor=NextActor,actor_options=Options}.
 
 show_down_(#state{community_cards=CC,deck=Deck,seats=Seats}=State) ->
     ActiveSeats = seats:show_active_seats(Seats),
@@ -146,7 +148,7 @@ show_down_(#state{community_cards=CC,deck=Deck,seats=Seats}=State) ->
     seats:distribute_winning(Seats, [S || {S,_,_} <- WinningSeatHands]),
     seats:prepare_new_game(Seats),
     deck:stop(Deck),
-    State#state{community_cards=[],deck=undefined,stage=show_down,actor=undefined}.
+    State#state{community_cards=[],deck=undefined,stage=show_down,actor=undefined,actor_options=[]}.
 
 hand_over_(#state{seats=Seats,deck=Deck}=State) ->
     ActiveSeats = seats:show_active_seats(Seats),
@@ -155,5 +157,10 @@ hand_over_(#state{seats=Seats,deck=Deck}=State) ->
     seats:distribute_winning(Seats, [Winner]),
     seats:prepare_new_game(Seats),
     deck:stop(Deck),
-    State#state{community_cards=[],deck=undefined,stage=hand_over,actor=undefined}.
+    State#state{community_cards=[],deck=undefined,stage=hand_over,actor=undefined,actor_options=[]}.
+
+next_player_(#state{seats=Seats,actor=Actor}=State) ->
+    NewActor = seats:get_next_seat(Seats,Actor),
+    Options = seats:get_available_options(Seats,NewActor),
+    State#state{actor=NewActor,actor_options=Options}.
 
