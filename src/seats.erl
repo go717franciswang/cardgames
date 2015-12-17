@@ -165,8 +165,13 @@ handle_call({show_cards_from_player,Player}, _From, #state{seats=Seats}=State) -
 handle_call(is_hand_over, _From, State) ->
     Reply = length(get_nonfolded_seats_(State)) == 1,
     {reply, Reply, State};
-handle_call({get_available_options, _Seat}, _From, State) ->
-    {reply, [fold], State};
+handle_call({get_available_options, Seat}, _From, State) ->
+    Options = case {is_first_bet_(State),is_highest_bet_(State,Seat)} of
+        {true,_} -> [check, bet];
+        {false,true} -> [check, raise];
+        {false,false} -> [call, raise]
+    end,
+    {reply, [fold|Options], State};
 handle_call(_Request, _From, State) ->
 	{reply, ignored, State}.
 
@@ -234,4 +239,8 @@ log_action_(State, #seat{position=Pos}, Action) ->
 get_dealer_(#state{seats=Seats, dealer_button_pos=DealerPos}) ->
     lists:keyfind(DealerPos, #seat.position, Seats).
 
+is_first_bet_(State) -> get_call_amount_(State) == 0.
+is_highest_bet_(#state{seats=Seats}=State, #seat{position=Pos}) -> 
+    #seat{bet=Bet} = lists:keyfind(Pos, #seat.position, Seats),
+    get_call_amount_(State) == Bet.
 
