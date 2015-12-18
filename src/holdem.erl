@@ -3,7 +3,8 @@
 
 %% API.
 -export([start_link/0]).
--export([join/2, sit/2, start_game/1, get_seats/1, take_turn/2, show_cards/2]).
+-export([join/2, sit/2, start_game/1, get_seats/1, take_turn/2, show_cards/2,
+         leave/2]).
 
 %% gen_fsm.
 -export([init/1]).
@@ -26,6 +27,7 @@ start_link() ->
 
 join(Pid, Player) -> gen_fsm:sync_send_event(Pid, {join, Player}).
 sit(Pid, Player) -> gen_fsm:sync_send_event(Pid, {sit, Player}).
+leave(Pid, Player) -> gen_fsm:sync_send_all_state_event(Pid, {leave, Player}).
 start_game(Pid) -> gen_fsm:sync_send_event(Pid, start).
 get_seats(Pid) -> gen_fsm:sync_send_event(Pid, get_seats).
 take_turn(Pid, Action) -> gen_fsm:sync_send_event(Pid, {take_turn, Action}).
@@ -80,6 +82,13 @@ game_in_progess({show_cards, Player}, _From, StateData) ->
 handle_event(_Event, StateName, StateData) ->
 	{next_state, StateName, StateData}.
 
+handle_sync_event({leave, Player}, _From, StateName, #state{seats=Seats,users=Users}=StateData) ->
+    case seats:leave(Seats, Player) of
+        ok -> io:format("Player ~p dropped out~n", [Player]);
+        {error, no_such_player} -> ok
+    end,
+    NewUsers = lists:delete(Player, Users),
+    {reply, ok, StateName, StateData#state{users=NewUsers}};
 handle_sync_event(_Event, _From, StateName, StateData) ->
 	{reply, ignored, StateName, StateData}.
 

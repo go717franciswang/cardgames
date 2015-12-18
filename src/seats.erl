@@ -8,7 +8,8 @@
         get_flop_actor/1, place_bet/3, deal_card/3, get_next_seat/2,
         handle_action/3, is_betting_complete/1, clear_last_action/1,
         pot_bets/1, get_pot/1, distribute_winning/2, prepare_new_game/1,
-        show_cards_from_player/2, is_hand_over/1, get_available_options/2]).
+        show_cards_from_player/2, is_hand_over/1, get_available_options/2,
+        leave/2]).
 
 %% gen_server.
 -export([init/1]).
@@ -49,6 +50,7 @@ prepare_new_game(Pid) -> gen_server:call(Pid, prepare_new_game).
 show_cards_from_player(Pid, Player) -> gen_server:call(Pid, {show_cards_from_player, Player}).
 is_hand_over(Pid) -> gen_server:call(Pid, is_hand_over).
 get_available_options(Pid, Seat) -> gen_server:call(Pid, {get_available_options, Seat}).
+leave(Pid, Player) -> gen_server:call(Pid, {leave, Player}).
 
 %% gen_server.
 
@@ -172,6 +174,15 @@ handle_call({get_available_options, Seat}, _From, State) ->
         {false,false} -> [call, raise]
     end,
     {reply, [fold|Options], State};
+handle_call({leave, Player}, _From, #state{seats=Seats,pot=Pot}=State) ->
+    {Reply,NewSeats,ExistingBet} = case lists:keyfind(Player, #seat.player, Seats) of
+        false -> 
+            {{error, no_such_player}, Seats, 0};
+        #seat{position=Pos,bet=Bet} -> 
+            NewSeat = #seat{position=Pos},
+            {ok, lists:keystore(Pos, #seat.position, Seats, NewSeat), Bet}
+    end,
+    {reply, Reply, State#state{seats=NewSeats,pot=Pot+ExistingBet}};
 handle_call(_Request, _From, State) ->
 	{reply, ignored, State}.
 

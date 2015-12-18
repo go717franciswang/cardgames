@@ -3,7 +3,8 @@
 
 %% API.
 -export([start_link/0, create_table/1, join_table/2, start_game/1, deal_card/2,
-        show_cards/1, new_player/2, signal_turn/2, take_turn/2, sit/1]).
+        show_cards/1, new_player/2, signal_turn/2, take_turn/2, sit/1,
+        leave/1]).
 
 %% gen_fsm.
 -export([init/1]).
@@ -32,6 +33,7 @@ show_cards(Pid) -> gen_fsm:sync_send_event(Pid, show_cards).
 new_player(Pid, Player) -> gen_fsm:send_event(Pid, {new_player, Player}).
 signal_turn(Pid, Options) -> gen_fsm:send_event(Pid, {signal_turn, Options}).
 take_turn(Pid, Action) -> gen_fsm:sync_send_event(Pid, {take_turn, Action}).
+leave(Pid) -> gen_fsm:sync_send_event(Pid, leave).
 
 %% gen_fsm.
 
@@ -48,8 +50,13 @@ lobby({join_table, TableId}, _From, StateData) ->
 	{reply, Reply, in_game, StateData#state{game=Pid}}.
 
 in_game(sit, _From, StateData) ->
-    holdem:sit(StateData#state.game, self()),
-    {reply, ok, in_game, StateData};
+    Reply = holdem:sit(StateData#state.game, self()),
+    {reply, Reply, in_game, StateData};
+in_game(leave, _From, StateData) ->
+    % try to fold first, in case it is this player turn right now
+    holdem:take_turn(StateData#state.game, fold),
+    Reply = holdem:leave(StateData#state.game, self()),
+    {reply, Reply, lobby, StateData#state{game=undefined}};
 in_game(show_cards, _From, StateData) ->
     Cards = holdem:show_cards(StateData#state.game, self()),
     {reply, Cards, in_game, StateData};
@@ -59,6 +66,7 @@ in_game(start_game, _From, StateData) ->
 in_game({take_turn, Action}, _From, StateData) ->
     Reply = holdem:take_turn(StateData#state.game, Action),
     {reply, Reply, in_game, StateData}.
+
 in_game({new_player, Player}, StateData) ->
     io:format("~p new player: ~p~n", [self(), Player]),
     {next_state, in_game, StateData};

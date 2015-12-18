@@ -1,10 +1,10 @@
 -module(player_SUITE).
 -export([all/0, init_per_testcase/2, end_per_testcase/2]).
--export([testShowDown/1, testHandOver/1]).
+-export([testShowDown/1, testHandOver/1, testPlayerLeaveDuringGame/1, testPlayerLeaveDuringGameDuringTurn/1]).
 -include_lib("common_test/include/ct.hrl").
 -include("records.hrl").
 
-all() -> [testShowDown, testHandOver].
+all() -> [testShowDown, testHandOver, testPlayerLeaveDuringGame, testPlayerLeaveDuringGameDuringTurn].
 
 init_per_testcase(_, Config) ->
     {ok, GamesSup} = cardgames_sup:start_link(),
@@ -100,4 +100,33 @@ testHandOver(Config) ->
 
     io:format("current seats: ~p~n", [seats:show_active_seats(Seats)]).
 
+testPlayerLeaveDuringGame(Config) ->
+    Seats = ?config(seats, Config),
+    FirstActor = ?config(first_actor, Config),
+    Dealer = ?config(dealer, Config),
+    SB = ?config(sb, Config),
+    BB = ?config(bb, Config),
+
+    ok = player:take_turn(FirstActor#seat.player, call),
+    ok = player:leave(SB#seat.player),
+    ok = player:take_turn(Dealer#seat.player, fold),
+    ok = player:take_turn(BB#seat.player, fold),
+    3 == length(seats:show_active_seats(Seats)),
+
+    io:format("current seats: ~p~n", [seats:show_active_seats(Seats)]).
+
+testPlayerLeaveDuringGameDuringTurn(Config) ->
+    Seats = ?config(seats, Config),
+    FirstActor = ?config(first_actor, Config),
+    Dealer = ?config(dealer, Config),
+    SB = ?config(sb, Config),
+    BB = ?config(bb, Config),
+
+    ok = player:take_turn(FirstActor#seat.player, call),
+    ok = player:take_turn(Dealer#seat.player, fold),
+    ok = player:leave(SB#seat.player),
+    ok = player:take_turn(BB#seat.player, fold),
+    3 == length(seats:show_active_seats(Seats)),
+
+    io:format("current seats: ~p~n", [seats:show_active_seats(Seats)]).
 
