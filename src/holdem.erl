@@ -3,7 +3,7 @@
 
 %% API.
 -export([start_link/0]).
--export([join/2, start_game/1, get_seats/1, take_turn/2, show_cards/2]).
+-export([join/2, sit/2, start_game/1, get_seats/1, take_turn/2, show_cards/2]).
 
 %% gen_fsm.
 -export([init/1]).
@@ -14,7 +14,7 @@
 -export([terminate/3]).
 -export([code_change/4]).
 
--record(state, {deck, seats, actor, actor_options=[], community_cards=[], stage
+-record(state, {deck, users=[], seats, actor, actor_options=[], community_cards=[], stage
 }).
 -include("records.hrl").
 
@@ -25,6 +25,7 @@ start_link() ->
 	gen_fsm:start_link(?MODULE, [], []).
 
 join(Pid, Player) -> gen_fsm:sync_send_event(Pid, {join, Player}).
+sit(Pid, Player) -> gen_fsm:sync_send_event(Pid, {sit, Player}).
 start_game(Pid) -> gen_fsm:sync_send_event(Pid, start).
 get_seats(Pid) -> gen_fsm:sync_send_event(Pid, get_seats).
 take_turn(Pid, Action) -> gen_fsm:sync_send_event(Pid, {take_turn, Action}).
@@ -37,6 +38,9 @@ init([]) ->
 	{ok, waiting_for_players, #state{seats=Seats}}.
 
 waiting_for_players({join, Player}, _From, StateData) ->
+    Users = [Player|StateData#state.users],
+    {reply, ok, waiting_for_players, StateData#state{users=Users}};
+waiting_for_players({sit, Player}, _From, StateData) ->
     io:format("broadcast new player: ~p~n", [Player]),
 
     lists:foreach(

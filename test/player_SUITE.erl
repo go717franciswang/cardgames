@@ -18,6 +18,12 @@ init_per_testcase(_, Config) ->
     ok = player:join_table(Player2, TableId),
     ok = player:join_table(Player3, TableId),
     ok = player:join_table(Player4, TableId),
+
+    ok = player:sit(Player1),
+    ok = player:sit(Player2),
+    ok = player:sit(Player3),
+    ok = player:sit(Player4),
+
     ok = player:start_game(Player1),
     [C1,C2] = player:show_cards(Player1),
     [C3,C4] = player:show_cards(Player2),

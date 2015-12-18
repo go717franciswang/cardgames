@@ -3,7 +3,7 @@
 
 %% API.
 -export([start_link/0, create_table/1, join_table/2, start_game/1, deal_card/2,
-        show_cards/1, new_player/2, signal_turn/2, take_turn/2]).
+        show_cards/1, new_player/2, signal_turn/2, take_turn/2, sit/1]).
 
 %% gen_fsm.
 -export([init/1]).
@@ -25,6 +25,7 @@ start_link() ->
 
 create_table(Pid) -> gen_fsm:sync_send_event(Pid, create_table).
 join_table(Pid, TableId) -> gen_fsm:sync_send_event(Pid, {join_table, TableId}).
+sit(Pid) -> gen_fsm:sync_send_event(Pid, sit).
 start_game(Pid) -> gen_fsm:sync_send_event(Pid, start_game).
 deal_card(Pid, Card) -> gen_fsm:send_event(Pid, {deal_card, Card}).
 show_cards(Pid) -> gen_fsm:sync_send_event(Pid, show_cards).
@@ -46,6 +47,9 @@ lobby({join_table, TableId}, _From, StateData) ->
     Reply = holdem:join(Pid, self()),
 	{reply, Reply, in_game, StateData#state{game=Pid}}.
 
+in_game(sit, _From, StateData) ->
+    holdem:sit(StateData#state.game, self()),
+    {reply, ok, in_game, StateData};
 in_game(show_cards, _From, StateData) ->
     Cards = holdem:show_cards(StateData#state.game, self()),
     {reply, Cards, in_game, StateData};
