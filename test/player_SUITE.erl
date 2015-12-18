@@ -1,12 +1,14 @@
 -module(player_SUITE).
 -export([all/0, init_per_testcase/2, end_per_testcase/2]).
--export([testShowDown/1, testHandOver/1, testPlayerLeaveDuringGame/1, testPlayerLeaveDuringGameDuringTurn/1]).
+-export([testShowDown/1, testHandOver/1, testPlayerLeaveDuringGame/1, testPlayerLeaveDuringGameDuringTurn/1,
+    testPlayerLeaveDuringWait/1]).
 -include_lib("common_test/include/ct.hrl").
 -include("records.hrl").
 
-all() -> [testShowDown, testHandOver, testPlayerLeaveDuringGame, testPlayerLeaveDuringGameDuringTurn].
+all() -> [testShowDown, testHandOver, testPlayerLeaveDuringGame, testPlayerLeaveDuringGameDuringTurn,
+    testPlayerLeaveDuringWait].
 
-init_per_testcase(_, Config) ->
+init_per_testcase(TestName, Config) when TestName /= testPlayerLeaveDuringWait ->
     {ok, GamesSup} = cardgames_sup:start_link(),
 
     {ok, Player1} = players_sup:create_player(),
@@ -48,7 +50,8 @@ init_per_testcase(_, Config) ->
      {first_actor,FirstActor},
      {dealer,Dealer},
      {sb,SB},
-     {bb,BB} | Config].
+     {bb,BB} | Config];
+init_per_testcase(_, Config) -> Config.
 
 end_per_testcase(_, _Config) ->
     ok.
@@ -130,3 +133,22 @@ testPlayerLeaveDuringGameDuringTurn(Config) ->
 
     io:format("current seats: ~p~n", [seats:show_active_seats(Seats)]).
 
+testPlayerLeaveDuringWait(Config) ->
+    {ok, GamesSup} = cardgames_sup:start_link(),
+
+    {ok, Player1} = players_sup:create_player(),
+    {ok, Player2} = players_sup:create_player(),
+    {ok, Player3} = players_sup:create_player(),
+    {ok, Player4} = players_sup:create_player(),
+    {ok, Table} = player:create_table(Player1),
+    [TableId] = tables_sup:list_tables(),
+    ok = player:join_table(Player2, TableId),
+    ok = player:join_table(Player3, TableId),
+    ok = player:join_table(Player4, TableId),
+
+    ok = player:sit(Player1),
+    ok = player:sit(Player2),
+    ok = player:sit(Player3),
+    ok = player:sit(Player4),
+
+    ok = player:leave(Player3).

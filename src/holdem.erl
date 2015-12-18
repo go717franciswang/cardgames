@@ -44,7 +44,6 @@ waiting_for_players({join, Player}, _From, StateData) ->
     {reply, ok, waiting_for_players, StateData#state{users=Users}};
 waiting_for_players({sit, Player}, _From, StateData) ->
     io:format("broadcast new player: ~p~n", [Player]),
-
     lists:foreach(
         fun(#seat{player=P}) -> 
                 player:new_player(P, Player) 
@@ -63,7 +62,9 @@ waiting_for_players(start, _From, #state{seats=Seats}=StateData) ->
     ActorSeat = seats:get_preflop_actor(Seats),
     Options = seats:get_available_options(Seats, ActorSeat),
     player:signal_turn(ActorSeat#seat.player, Options),
-    {reply, ok, game_in_progess, NewState#state{actor=ActorSeat, stage=preflop, actor_options=Options}}.
+    {reply, ok, game_in_progess, NewState#state{actor=ActorSeat, stage=preflop, actor_options=Options}};
+waiting_for_players(_, _, StateData) ->
+    {reply, ignored, waiting_for_players, StateData}.
 
 game_in_progess(get_seats, _From, StateData) ->
     {reply, StateData#state.seats, game_in_progess, StateData};
