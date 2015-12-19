@@ -25,9 +25,9 @@
 start_link() ->
 	gen_fsm:start_link(?MODULE, [], []).
 
-join(Pid, Player) -> gen_fsm:sync_send_event(Pid, {join, Player}).
-sit(Pid, Player) -> gen_fsm:sync_send_event(Pid, {sit, Player}).
+join(Pid, Player) -> gen_fsm:sync_send_all_state_event(Pid, {join, Player}).
 leave(Pid, Player) -> gen_fsm:sync_send_all_state_event(Pid, {leave, Player}).
+sit(Pid, Player) -> gen_fsm:sync_send_event(Pid, {sit, Player}).
 start_game(Pid) -> gen_fsm:sync_send_event(Pid, start).
 get_seats(Pid) -> gen_fsm:sync_send_event(Pid, get_seats).
 take_turn(Pid, Action) -> gen_fsm:sync_send_event(Pid, {take_turn, Action}).
@@ -39,9 +39,6 @@ init([]) ->
     {ok, Seats} = seats:start_link(6),
 	{ok, waiting_for_players, #state{seats=Seats}}.
 
-waiting_for_players({join, Player}, _From, StateData) ->
-    Users = [Player|StateData#state.users],
-    {reply, ok, waiting_for_players, StateData#state{users=Users}};
 waiting_for_players({sit, Player}, _From, StateData) ->
     io:format("broadcast new player: ~p~n", [Player]),
     lists:foreach(
@@ -83,6 +80,9 @@ game_in_progess({show_cards, Player}, _From, StateData) ->
 handle_event(_Event, StateName, StateData) ->
 	{next_state, StateName, StateData}.
 
+handle_sync_event({join, Player}, _From, StateName, StateData) ->
+    Users = [Player|StateData#state.users],
+    {reply, ok, StateName, StateData#state{users=Users}};
 handle_sync_event({leave, Player}, _From, StateName, #state{seats=Seats,users=Users}=StateData) ->
     case seats:leave(Seats, Player) of
         ok -> io:format("Player ~p dropped out~n", [Player]);
