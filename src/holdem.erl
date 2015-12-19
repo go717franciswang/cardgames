@@ -146,7 +146,7 @@ draw_community_cards_(#state{community_cards=CC,deck=Deck,seats=Seats}=State, N,
     Options = seats:get_available_options(Seats, NextActor),
     State#state{community_cards=NewCC,stage=NextStage,actor=NextActor,actor_options=Options}.
 
-show_down_(#state{community_cards=CC,deck=Deck,seats=Seats}=State) ->
+show_down_(#state{community_cards=CC,seats=Seats}=State) ->
     ActiveSeats = seats:show_active_seats(Seats),
     SeatHands = lists:map(
         fun(#seat{cards=Cards}=Seat) ->
@@ -164,20 +164,20 @@ show_down_(#state{community_cards=CC,deck=Deck,seats=Seats}=State) ->
         fun({_,Hand,_}) -> Hand == BestHand end, SeatHandsRanked),
 
     io:format("winning player hands: ~p~n", [WinningSeatHands]),
-    seats:pot_bets(Seats),
-    seats:distribute_winning(Seats, [S || {S,_,_} <- WinningSeatHands]),
-    seats:prepare_new_game(Seats),
-    deck:stop(Deck),
+    game_end_routine_(State, [S || {S,_,_} <- WinningSeatHands]),
     State#state{community_cards=[],deck=undefined,stage=show_down,actor=undefined,actor_options=[]}.
 
-hand_over_(#state{seats=Seats,deck=Deck}=State) ->
+hand_over_(#state{seats=Seats}=State) ->
     ActiveSeats = seats:show_active_seats(Seats),
     [Winner] = [X || X <- ActiveSeats, X#seat.last_action /= fold],
-    seats:pot_bets(Seats),
-    seats:distribute_winning(Seats, [Winner]),
-    seats:prepare_new_game(Seats),
-    deck:stop(Deck),
+    game_end_routine_(State, [Winner]),
     State#state{community_cards=[],deck=undefined,stage=hand_over,actor=undefined,actor_options=[]}.
+
+game_end_routine_(#state{seats=Seats,deck=Deck}, Winners) ->
+    seats:pot_bets(Seats),
+    seats:distribute_winning(Seats, Winners),
+    seats:prepare_new_game(Seats),
+    deck:stop(Deck).
 
 next_player_(#state{seats=Seats,actor=Actor}=State) ->
     NewActor = seats:get_next_seat(Seats,Actor),
