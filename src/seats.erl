@@ -9,7 +9,7 @@
         handle_action/3, is_betting_complete/1, clear_last_action/1,
         pot_bets/1, get_pot/1, distribute_winning/2, prepare_new_game/1,
         show_cards_from_player/2, is_hand_over/1, get_available_options/2,
-        leave/2]).
+        leave/2, drop_broke_players/1]).
 
 %% gen_server.
 -export([init/1]).
@@ -51,6 +51,7 @@ show_cards_from_player(Pid, Player) -> gen_server:call(Pid, {show_cards_from_pla
 is_hand_over(Pid) -> gen_server:call(Pid, is_hand_over).
 get_available_options(Pid, Seat) -> gen_server:call(Pid, {get_available_options, Seat}).
 leave(Pid, Player) -> gen_server:call(Pid, {leave, Player}).
+drop_broke_players(Pid) -> gen_server:call(Pid, drop_broke_players).
 
 %% gen_server.
 
@@ -141,11 +142,9 @@ handle_call(clear_last_action, _From, State) ->
         end, State#state.seats),
     {reply, ok, State#state{seats=NewSeats}};
 handle_call(pot_bets, _From, #state{seats=Seats,pot=Pot}=State) ->
-    {NewSeats, NewPot} = lists:foldl(
-        fun(#seat{bet=Bet}=Seat, {S, P}) -> 
-                {[Seat#seat{bet=0}|S], P+Bet}
-        end, {[], Pot}, Seats),
-    {reply, ok, State#state{seats=lists:reverse(NewSeats),pot=NewPot}};
+    PotAddition = lists:sum([Bet || #seat{bet=Bet} <- Seats]),
+    NewSeats = [S#seat{bet=0} || S <- Seats],
+    {reply, ok, State#state{seats=NewSeats,pot=Pot+PotAddition}};
 handle_call(get_pot, _From, State) ->
     {reply, State#state.pot, State};
 handle_call({distribute_winning, WinningSeats}, _From, #state{pot=Pot,seats=OSeats}=State) ->
@@ -183,6 +182,12 @@ handle_call({leave, Player}, _From, #state{seats=Seats,pot=Pot}=State) ->
             {ok, lists:keystore(Pos, #seat.position, Seats, NewSeat), Bet}
     end,
     {reply, Reply, State#state{seats=NewSeats,pot=Pot+ExistingBet}};
+handle_call(drop_broke_players, _From, #state{seats=Seats}=State) ->
+    NewSeats = lists:map(
+        fun(#seat{money=0,position=Pos}) -> #seat{position=Pos};
+           (Seat) -> Seat
+        end, Seats),
+    {reply, ok, State#state{seats=NewSeats}};
 handle_call(_Request, _From, State) ->
 	{reply, ignored, State}.
 

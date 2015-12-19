@@ -143,6 +143,17 @@ pot_bets_test() ->
     ?assertEqual(0, NS1#seat.bet),
     ?assertEqual(0, NS2#seat.bet).
 
+drop_broke_players_test() ->
+    {ok, Seats} = seats:start_link(6),
+    seats:join(Seats, dummy_player1),
+    seats:join(Seats, dummy_player2),
+    [S1, S2] = seats:show_active_seats(Seats),
+
+    seats:place_bet(Seats, S1, S1#seat.money),
+    seats:drop_broke_players(Seats),
+
+    LeftOver = seats:show_active_seats(Seats),
+    ?assertEqual([S2], LeftOver).
 
 
 

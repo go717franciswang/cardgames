@@ -176,6 +176,7 @@ hand_over_(#state{seats=Seats}=State) ->
 game_end_routine_(#state{seats=Seats,deck=Deck}, Winners) ->
     seats:pot_bets(Seats),
     seats:distribute_winning(Seats, Winners),
+    seats:drop_broke_players(Seats),
     seats:prepare_new_game(Seats),
     deck:stop(Deck).
 
