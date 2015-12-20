@@ -147,6 +147,7 @@ draw_community_cards_(#state{community_cards=CC,deck=Deck,seats=Seats}=State, N,
     State#state{community_cards=NewCC,stage=NextStage,actor=NextActor,actor_options=Options}.
 
 show_down_(#state{community_cards=CC,seats=Seats}=State) ->
+    seats:pot_bets(Seats),
     PotWins = seats:show_down(Seats, CC),
     lists:foreach(
         fun(#pot_wins{pot=Pot,wins=Plays}) ->
@@ -157,21 +158,17 @@ show_down_(#state{community_cards=CC,seats=Seats}=State) ->
     State#state{community_cards=[],deck=undefined,stage=show_down,actor=undefined,actor_options=[]}.
 
 hand_over_(#state{seats=Seats}=State) ->
+    seats:pot_bets(Seats),
     PotWins = seats:hand_over(Seats),
     lists:foreach(
         fun(#pot_wins{pot=Pot,wins=Plays}) ->
                 io:format("pot: ~p~n", [Pot]),
                 io:format("winning plays: ~p~n~n", [Plays])
         end, PotWins),
-    % ActiveSeats = seats:show_active_seats(Seats),
-    % [Winner] = [X || X <- ActiveSeats, X#seat.last_action /= fold],
     game_end_routine_(State),
     State#state{community_cards=[],deck=undefined,stage=hand_over,actor=undefined,actor_options=[]}.
 
 game_end_routine_(#state{seats=Seats,deck=Deck}) ->
-    % TODO: move pot_bets and distribute_winning to seats:show_down or seats:hand_over
-    % seats:pot_bets(Seats),
-    % seats:distribute_winning(Seats, Winners),
     seats:drop_broke_players(Seats),
     seats:prepare_new_game(Seats),
     deck:stop(Deck).
