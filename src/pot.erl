@@ -2,6 +2,7 @@
 -export([build_pots/1, merge_pots/2, split_single_player_pots/1]).
 -include("records.hrl").
 
+build_pots([]) -> [];
 build_pots(MoneyIdTuples) ->
     Sorted = lists:sort(fun({MoneyA,_},{MoneyB,_}) -> MoneyA =< MoneyB end, MoneyIdTuples),
     [{MoneyPerPerson,_}|_] = Sorted,
