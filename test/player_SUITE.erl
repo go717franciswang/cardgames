@@ -1,14 +1,15 @@
 -module(player_SUITE).
 -export([all/0, init_per_testcase/2, end_per_testcase/2]).
 -export([testShowDown/1, testHandOver/1, testPlayerLeaveDuringGame/1, testPlayerLeaveDuringGameDuringTurn/1,
-    testPlayerLeaveDuringWait/1]).
+    testPlayerLeaveDuringWait/1, testTimeout/1]).
 -include_lib("common_test/include/ct.hrl").
 -include("records.hrl").
 
 all() -> [testShowDown, testHandOver, testPlayerLeaveDuringGame, testPlayerLeaveDuringGameDuringTurn,
-    testPlayerLeaveDuringWait].
+    testPlayerLeaveDuringWait, testTimeout].
 
-init_per_testcase(TestName, Config) when TestName /= testPlayerLeaveDuringWait ->
+init_per_testcase(testPlayerLeaveDuringWait, Config) -> Config;
+init_per_testcase(_TestName, Config) ->
     {ok, GamesSup} = cardgames_sup:start_link(),
 
     {ok, Player1} = players_sup:create_player(),
@@ -46,12 +47,12 @@ init_per_testcase(TestName, Config) when TestName /= testPlayerLeaveDuringWait -
     {SB,BB} = seats:get_blinds(Seats),
 
     [{games_sup,GamesSup},
+     {table,Table},
      {seats,Seats},
      {first_actor,FirstActor},
      {dealer,Dealer},
      {sb,SB},
-     {bb,BB} | Config];
-init_per_testcase(_, Config) -> Config.
+     {bb,BB} | Config].
 
 end_per_testcase(_, _Config) ->
     ok.
@@ -152,3 +153,21 @@ testPlayerLeaveDuringWait(Config) ->
     ok = player:sit(Player4),
 
     ok = player:leave(Player3).
+
+testTimeout(Config) ->
+    Seats = ?config(seats, Config),
+    FirstActor = ?config(first_actor, Config),
+    Dealer = ?config(dealer, Config),
+    SB = ?config(sb, Config),
+    BB = ?config(bb, Config),
+    Table = ?config(table, Config),
+
+    ok = holdem:set_timeout(Table, 100),
+    ok = player:take_turn(FirstActor#seat.player, call),
+    timer:sleep(150),
+    {error, not_your_turn} = player:take_turn(Dealer#seat.player, raise),
+    ok = player:take_turn(SB#seat.player, fold),
+    ok = player:take_turn(BB#seat.player, fold),
+
+    io:format("current seats: ~p~n", [seats:show_active_seats(Seats)]).
+

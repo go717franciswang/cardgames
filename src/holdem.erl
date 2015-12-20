@@ -4,7 +4,7 @@
 %% API.
 -export([start_link/0]).
 -export([join/2, sit/2, start_game/1, get_seats/1, take_turn/2, show_cards/2,
-         leave/2]).
+         leave/2, set_timeout/2]).
 
 %% gen_fsm.
 -export([init/1]).
@@ -33,6 +33,7 @@ start_game(Pid) -> gen_fsm:sync_send_event(Pid, start).
 get_seats(Pid) -> gen_fsm:sync_send_event(Pid, get_seats).
 take_turn(Pid, Action) -> gen_fsm:sync_send_event(Pid, {take_turn, Action}).
 show_cards(Pid, Player) -> gen_fsm:sync_send_event(Pid, {show_cards, Player}).
+set_timeout(Pid, Timeout) -> gen_fsm:sync_send_all_state_event(Pid, {set_timeout, Timeout}).
 
 %% gen_fsm.
 
@@ -98,6 +99,8 @@ handle_sync_event({leave, Player}, _From, StateName, #state{seats=Seats,users=Us
     end,
     NewUsers = lists:delete(Player, Users),
     {reply, ok, StateName, StateData#state{users=NewUsers}};
+handle_sync_event({set_timeout, Timeout}, _From, StateName, StateData) ->
+    {reply, ok, StateName, StateData#state{timeout=Timeout}};
 handle_sync_event(_Event, _From, StateName, StateData) ->
 	{reply, ignored, StateName, StateData}.
 
