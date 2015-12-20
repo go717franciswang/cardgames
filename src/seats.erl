@@ -227,9 +227,23 @@ handle_call({show_down, CC}, _From, #state{pots=Pots,seats=Seats}=State) ->
         end, Pots),
     NewState = distribute_winning_(State, Reply),
     {reply, Reply, NewState};
-handle_call(hand_over, _From, State) ->
-    %TODO
-    {reply, [{pot, [winner]}], State};
+handle_call(hand_over, _From, #state{seats=Seats,pots=Pots}=State) ->
+    [#seat{position=WinId,player=Winner}] = get_nonfolded_seats_(State),
+    Reply = lists:map(
+        fun(#pot{eligible_ids=Ids}=Pot) ->
+                case lists:member(WinId, Ids) of
+                    true -> #pot_wins{pot=Pot, wins=[#play{player=Winner}]};
+                    false ->
+                        Plays = lists:map(
+                            fun(Id) ->
+                                    #seat{player=P} = lists:keyfind(Id,#seat.position,Seats),
+                                    #play{player=P}
+                            end, Ids),
+                        #pot_wins{pot=Pot, wins=Plays}
+                end
+        end, Pots),
+    NewState = distribute_winning_(State, Reply),
+    {reply, Reply, NewState};
 handle_call(_Request, _From, State) ->
 	{reply, ignored, State}.
 

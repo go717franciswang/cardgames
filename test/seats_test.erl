@@ -183,10 +183,24 @@ show_down_test() ->
     seats:place_bet(Seats, S1, 10),
     seats:place_bet(Seats, S2, 10),
     seats:pot_bets(Seats),
-    PotPlays = seats:show_down(Seats, CC),
+    PotWins = seats:show_down(Seats, CC),
     ?assertMatch([#pot_wins{
                 pot=#pot{money=20},
                 wins=[#play{hand=#hand{name=royal_flush}},#play{hand=#hand{name=royal_flush}}]
-            }], PotPlays).
+            }], PotWins).
+
+hand_over_test() ->
+    {ok, Seats} = seats:start_link(6),
+    seats:join(Seats, dummy_player1),
+    seats:join(Seats, dummy_player2),
+    [S1, S2] = seats:show_active_seats(Seats),
+    seats:place_bet(Seats, S1, 10),
+    seats:place_bet(Seats, S2, 10),
+    seats:handle_action(Seats, S1, fold),
+    seats:pot_bets(Seats),
+    PotWins = seats:hand_over(Seats),
+    P2 = S2#seat.player,
+    ?assertMatch([#pot_wins{pot=#pot{money=20}, wins=[#play{player=P2}]}], PotWins).
+
 
 

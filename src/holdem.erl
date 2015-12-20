@@ -147,38 +147,22 @@ draw_community_cards_(#state{community_cards=CC,deck=Deck,seats=Seats}=State, N,
     State#state{community_cards=NewCC,stage=NextStage,actor=NextActor,actor_options=Options}.
 
 show_down_(#state{community_cards=CC,seats=Seats}=State) ->
-    PotWinnerHands = seats:show_down(Seats, CC),
-    % ActiveSeats = seats:show_active_seats(Seats),
-    % SeatHands = lists:map(
-    %     fun(#seat{cards=Cards}=Seat) ->
-    %             {Hand,FiveCards} = hand:get_highest_hand(Cards++CC),
-    %             {Seat,Hand,FiveCards}
-    %     end, ActiveSeats),
-
-    % SeatHandsRanked = lists:sort(
-    %     fun({_,HandA,_},{_,HandB,_}) -> 
-    %             hand:is_higher_hand(HandA,HandB)
-    %     end, SeatHands),
-    % [{_,BestHand,_}|_] = SeatHandsRanked,
-
-    % WinningSeatHands = lists:takewhile(
-    %     fun({_,Hand,_}) -> Hand == BestHand end, SeatHandsRanked),
-
+    PotWins = seats:show_down(Seats, CC),
     lists:foreach(
-        fun({Pot, WinningSeatHands}) ->
+        fun(#pot_wins{pot=Pot,wins=Plays}) ->
                 io:format("pot: ~p~n", [Pot]),
-                io:format("winning player hands: ~p~n~n", [WinningSeatHands])
-        end, PotWinnerHands),
+                io:format("winning plays: ~p~n~n", [Plays])
+        end, PotWins),
     game_end_routine_(State),
     State#state{community_cards=[],deck=undefined,stage=show_down,actor=undefined,actor_options=[]}.
 
 hand_over_(#state{seats=Seats}=State) ->
-    PotWinners = seats:hand_over(Seats),
+    PotWins = seats:hand_over(Seats),
     lists:foreach(
-        fun({Pot, Winners}) ->
+        fun(#pot_wins{pot=Pot,wins=Plays}) ->
                 io:format("pot: ~p~n", [Pot]),
-                io:format("winners: ~p~n~n", [Winners])
-        end, PotWinners),
+                io:format("winning plays: ~p~n~n", [Plays])
+        end, PotWins),
     % ActiveSeats = seats:show_active_seats(Seats),
     % [Winner] = [X || X <- ActiveSeats, X#seat.last_action /= fold],
     game_end_routine_(State),
