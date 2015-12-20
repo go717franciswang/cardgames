@@ -198,3 +198,7 @@ get_highest_hand_test() ->
                  #card{rank=seven,suit=spade},
                  #card{rank=eight,suit=heart},
                  #card{rank=ten,suit=heart}]}, Ans2).
+
+str_to_card_test() ->
+    ?assertEqual(#card{rank=ace,suit=heart}, hand:str_to_card("AH")).
+
