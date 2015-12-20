@@ -8,14 +8,15 @@
 
 %% gen_fsm.
 -export([init/1]).
--export([waiting_for_players/3, game_in_progess/3]).
+-export([waiting_for_players/3, game_in_progess/3, game_in_progess/2]).
 -export([handle_event/3]).
 -export([handle_sync_event/4]).
 -export([handle_info/3]).
 -export([terminate/3]).
 -export([code_change/4]).
 
--record(state, {deck, users=[], seats, actor, actor_options=[], community_cards=[], stage
+-record(state, {deck, users=[], seats, actor, actor_options=[], community_cards=[], stage,
+        timeout=30000, timer
 }).
 -include("records.hrl").
 
@@ -47,7 +48,7 @@ waiting_for_players({sit, Player}, _From, StateData) ->
         end, seats:show_active_seats(StateData#state.seats)),
     seats:join(StateData#state.seats, Player),
     {reply, ok, waiting_for_players, StateData};
-waiting_for_players(start, _From, #state{seats=Seats}=StateData) ->
+waiting_for_players(start, _From, #state{seats=Seats,timeout=Timeout}=StateData) ->
     {ok, Deck} = deck:start_link(),
     NewState = StateData#state{deck=Deck},
     seats:rotate_dealer_button(Seats),
@@ -59,7 +60,9 @@ waiting_for_players(start, _From, #state{seats=Seats}=StateData) ->
     ActorSeat = seats:get_preflop_actor(Seats),
     Options = seats:get_available_options(Seats, ActorSeat),
     player:signal_turn(ActorSeat#seat.player, Options),
-    {reply, ok, game_in_progess, NewState#state{actor=ActorSeat, stage=preflop, actor_options=Options}};
+    Timer = gen_fsm:start_timer(Timeout, get_timeout_action_(Options)),
+    {reply, ok, game_in_progess, 
+        NewState#state{actor=ActorSeat, stage=preflop, actor_options=Options, timer=Timer}};
 waiting_for_players(_, _, StateData) ->
     {reply, ignored, waiting_for_players, StateData}.
 
@@ -76,6 +79,11 @@ game_in_progess({take_turn,Action}, _From, #state{actor_options=Options}=State) 
 game_in_progess({show_cards, Player}, _From, StateData) ->
     Cards = seats:show_cards_from_player(StateData#state.seats, Player),
     {reply, Cards, game_in_progess, StateData}.
+
+game_in_progess({timeout, _Ref, Action}, State) ->
+    io:format("last player did not take action in time~n"),
+    {_Reply, NewStateName, NewState} = handle_action_(State, Action),
+    {next_state, NewStateName, NewState}.
 
 handle_event(_Event, StateName, StateData) ->
 	{next_state, StateName, StateData}.
@@ -109,8 +117,12 @@ deal_cards_(#state{seats=Seats,deck=Deck}=State,DealTo,TimesLeft) ->
     NextSeat = seats:get_next_seat(Seats, DealTo),
     deal_cards_(State, NextSeat, TimesLeft-1).
 
-handle_action_(#state{seats=Seats,actor=Actor,stage=Stage}=StateData, Action) ->
+handle_action_(#state{seats=Seats,actor=Actor,stage=Stage,timer=Timer,timeout=Timeout}=StateData, Action) ->
     io:format("received action ~p from ~p~n", [Action, Actor#seat.player]),
+    case Timer of
+        undefined -> ok;
+        _ -> gen_fsm:cancel_timer(Timer)
+    end,
     seats:handle_action(Seats, Actor, Action),
     IsHandOver = seats:is_hand_over(Seats),
     IsBettingComplete = seats:is_betting_complete(Seats),
@@ -130,11 +142,13 @@ handle_action_(#state{seats=Seats,actor=Actor,stage=Stage}=StateData, Action) ->
         _ -> game_in_progess
     end,
 
-    case NewState#state.actor of
-        undefined -> ok;
-        NextActor -> player:signal_turn(NextActor#seat.player, NewState#state.actor_options)
+    NewTimer = case NewState#state.actor of
+        undefined -> undefined;
+        NextActor -> 
+            player:signal_turn(NextActor#seat.player, NewState#state.actor_options),
+            gen_fsm:start_timer(Timeout, get_timeout_action_(NewState#state.actor_options))
     end,
-    {ok, NewStateName, NewState}.
+    {ok, NewStateName, NewState#state{timer=NewTimer}}.
 
 draw_community_cards_(#state{community_cards=CC,deck=Deck,seats=Seats}=State, N, NextStage) ->
     deck:draw_cards(Deck, 1), % burn card
@@ -177,4 +191,10 @@ next_player_(#state{seats=Seats,actor=Actor}=State) ->
     NewActor = seats:get_next_seat(Seats,Actor),
     Options = seats:get_available_options(Seats,NewActor),
     State#state{actor=NewActor,actor_options=Options}.
+
+get_timeout_action_(Options) ->
+    case lists:member(check, Options) of
+            true -> check;
+            false -> fold
+    end.
 
