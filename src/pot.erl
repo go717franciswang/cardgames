@@ -17,5 +17,12 @@ build_pots(Sorted, MoneyPerPerson) ->
         [{NewMoneyPerPerson,_}|_] -> [Pot|build_pots(NewSorted, NewMoneyPerPerson)]
     end.
 
-merge_pots(_PotsA, _PotsB) ->
-    [].
+merge_pots(Pots1, Pots2) ->
+    lists:foldl(
+        fun(#pot{money=M2,eligible_ids=Ids}=P, Pots) ->
+                case lists:keyfind(Ids, #pot.eligible_ids, Pots) of
+                    false -> lists:keystore(Ids, #pot.eligible_ids, Pots, P);
+                    #pot{money=M1} -> lists:keystore(Ids, #pot.eligible_ids, Pots, P#pot{money=M1+M2})
+                end
+        end, Pots1, Pots2).
+    
