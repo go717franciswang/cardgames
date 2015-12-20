@@ -170,5 +170,23 @@ drop_broke_players_test() ->
     LeftOver = seats:show_active_seats(Seats),
     ?assertEqual([S2], LeftOver).
 
+show_down_test() ->
+    {ok, Seats} = seats:start_link(6),
+    seats:join(Seats, dummy_player1),
+    seats:join(Seats, dummy_player2),
+    [S1, S2] = seats:show_active_seats(Seats),
+    CC = hand:strs_to_cards(["AH","KH","QH","JH","TH"]),
+    seats:deal_card(Seats, S1#seat.player, hand:str_to_card("2H")),
+    seats:deal_card(Seats, S1#seat.player, hand:str_to_card("2S")),
+    seats:deal_card(Seats, S2#seat.player, hand:str_to_card("2C")),
+    seats:deal_card(Seats, S2#seat.player, hand:str_to_card("2D")),
+    seats:place_bet(Seats, S1, 10),
+    seats:place_bet(Seats, S2, 10),
+    seats:pot_bets(Seats),
+    PotPlays = seats:show_down(Seats, CC),
+    ?assertMatch([#pot_wins{
+                pot=#pot{money=20},
+                wins=[#play{hand=#hand{name=royal_flush}},#play{hand=#hand{name=royal_flush}}]
+            }], PotPlays).
 
 

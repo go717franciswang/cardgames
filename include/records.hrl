@@ -19,3 +19,11 @@
 
 % id: used to identify the player (e.g. seat.position)
 -record(pot, {money=0, eligible_ids=[]}).
+
+% pot: reflect the pot right before winning was distributed
+% wins: list of winning plays
+-record(pot_wins, {pot, wins=[]}).
+
+% hand: best hand of the player
+% cards: the 5 cards that formed the best hand
+-record(play, {player, hand, cards}).

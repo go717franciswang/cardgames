@@ -10,7 +10,8 @@ build_pots(MoneyIdTuples) ->
 build_pots([], _) -> [];
 build_pots(Sorted, MoneyPerPerson) ->
     Ids = [Id || {_,Id} <- Sorted],
-    NewSorted = [{Money-MoneyPerPerson,Id} || {Money,Id} <- Sorted, Money-MoneyPerPerson > 0],
+    NewSorted = [{Money-MoneyPerPerson,Id} || {Money,Id} <- Sorted, 
+        round_money(Money-MoneyPerPerson) > 0],
     Pot = #pot{money=MoneyPerPerson*length(Sorted), eligible_ids=Ids},
     case NewSorted of
         [] -> [Pot];
@@ -29,3 +30,5 @@ merge_pots(Pots1, Pots2) ->
 split_single_player_pots(Pots) ->
     {[P || P <- Pots, length(P#pot.eligible_ids) == 1],
      [P || P <- Pots, length(P#pot.eligible_ids) > 1]}.
+
+round_money(Money) -> round(Money * 1000) / 1000.

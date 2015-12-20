@@ -211,9 +211,22 @@ handle_call(drop_broke_players, _From, #state{seats=Seats}=State) ->
            (Seat) -> Seat
         end, Seats),
     {reply, ok, State#state{seats=NewSeats}};
-handle_call({show_down, _CC}, _From, State) ->
-    %TODO
-    {reply, [{pot, [{winner,hand}]}], State};
+handle_call({show_down, CC}, _From, #state{pots=Pots,seats=Seats}=State) ->
+    Reply = lists:map(
+        fun(#pot{eligible_ids=Ids}=Pot) ->
+                SS = [lists:keyfind(Pos, #seat.position, Seats) || Pos <- Ids],
+                SH = lists:map(
+                    fun(#seat{cards=Cards,player=P}) ->
+                            {H,FC} = hand:get_highest_hand(Cards++CC),
+                            #play{player=P,hand=H,cards=FC}
+                    end, SS),
+                SHR = lists:sort(fun(#play{hand=HA},#play{hand=HB}) -> hand:is_higher_hand(HA,HB) end, SH),
+                [#play{hand=BH}|_] = SHR,
+                WSH = lists:takewhile(fun(#play{hand=H}) -> H == BH end, SHR),
+                #pot_wins{pot=Pot, wins=WSH}
+        end, Pots),
+    NewState = distribute_winning_(State, Reply),
+    {reply, Reply, NewState};
 handle_call(hand_over, _From, State) ->
     %TODO
     {reply, [{pot, [winner]}], State};
@@ -289,4 +302,19 @@ is_highest_bet_(#state{seats=Seats}=State, #seat{position=Pos}) ->
     get_call_amount_(State) == Bet.
 
 distribute_pots_(_Pots, Seats) ->
+    % TODO: what is this?
     Seats.
+
+distribute_winning_(#state{seats=Seats}=State, [#pot_wins{pot=#pot{money=M},wins=Plays}|PotWins]) ->
+    MoneyPerWinner = M / length(Plays),
+    NewSeats = lists:foldl(
+        fun(#play{player=P}, SS) ->
+                S = lists:keyfind(P, #seat.player, SS),
+                Money = S#seat.money,
+                NS = S#seat{money=Money+MoneyPerWinner},
+                lists:keystore(P, #seat.player, SS, NS)
+        end, Seats, Plays),
+    distribute_winning_(State#state{seats=NewSeats,pots=[]}, PotWins);
+distribute_winning_(State, []) -> State.
+
+
