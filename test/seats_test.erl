@@ -79,6 +79,22 @@ place_bet_test() ->
     ?assertEqual(2, S1#seat.money - NS1_#seat.money),
     ?assertEqual(3, S2#seat.money - NS2_#seat.money).
 
+all_in_test() -> 
+    {ok, Seats} = seats:start_link(6),
+    seats:join(Seats, dummy_player1),
+    seats:join(Seats, dummy_player2),
+    [S1, S2] = seats:show_active_seats(Seats),
+
+    seats:set_money(Seats, S1, 5),
+    seats:set_money(Seats, S2, 15),
+    seats:place_bet(Seats, S2, 10),
+    seats:place_bet(Seats, S1, 10),
+
+    seats:pot_bets(Seats),
+    [NS1, NS2] = seats:show_active_seats(Seats),
+    ?assertEqual(0, NS1#seat.money),
+    ?assertEqual(10, NS1#seat.money).
+
 get_next_seat_test() ->
     {ok, Seats} = seats:start_link(6),
     seats:join(Seats, dummy_player1),

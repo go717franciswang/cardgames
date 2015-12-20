@@ -7,9 +7,10 @@
         rotate_dealer_button/1, get_blinds/1, get_preflop_actor/1, 
         get_flop_actor/1, place_bet/3, deal_card/3, get_next_seat/2,
         handle_action/3, is_betting_complete/1, clear_last_action/1,
-        pot_bets/1, get_pot/1, distribute_winning/2, prepare_new_game/1,
+        pot_bets/1, get_pots/1, distribute_winning/2, prepare_new_game/1,
         show_cards_from_player/2, is_hand_over/1, get_available_options/2,
-        leave/2, drop_broke_players/1]).
+        leave/2, drop_broke_players/1, set_money/3, show_down/2, 
+        hand_over/1]).
 
 %% gen_server.
 -export([init/1]).
@@ -19,7 +20,7 @@
 -export([terminate/2]).
 -export([code_change/3]).
 
--record(state, {seats=[], dealer_button_pos=1, blind_amount=0.1, pot=0
+-record(state, {seats=[], dealer_button_pos=1, blind_amount=0.1, pots=[]
 }).
 -include("records.hrl").
 
@@ -37,6 +38,7 @@ rotate_dealer_button(Pid) -> gen_server:call(Pid, rotate_dealer_button).
 get_blinds(Pid) -> gen_server:call(Pid, get_blinds).
 get_preflop_actor(Pid) -> gen_server:call(Pid, get_preflop_actor).
 get_flop_actor(Pid) -> gen_server:call(Pid, get_flop_actor).
+set_money(Pid, Seat, Money) -> gen_server:call(Pid, {set_money, Seat, Money}).
 place_bet(Pid, Seat, BetAmount) -> gen_server:call(Pid, {place_bet, Seat, BetAmount}).
 deal_card(Pid, Seat, Card) -> gen_server:call(Pid, {deal_card, Seat, Card}).
 get_next_seat(Pid, Seat) -> gen_server:call(Pid, {get_next_seat, Seat}).
@@ -44,7 +46,7 @@ handle_action(Pid, Actor, Action) -> gen_server:call(Pid, {handle_action, Actor,
 is_betting_complete(Pid) -> gen_server:call(Pid, is_betting_complete).
 clear_last_action(Pid) -> gen_server:call(Pid, clear_last_action).
 pot_bets(Pid) -> gen_server:call(Pid, pot_bets).
-get_pot(Pid) -> gen_server:call(Pid, get_pot).
+get_pots(Pid) -> gen_server:call(Pid, get_pots).
 distribute_winning(Pid,WinningSeats) -> gen_server:call(Pid, {distribute_winning,WinningSeats}).
 prepare_new_game(Pid) -> gen_server:call(Pid, prepare_new_game).
 show_cards_from_player(Pid, Player) -> gen_server:call(Pid, {show_cards_from_player, Player}).
@@ -52,6 +54,8 @@ is_hand_over(Pid) -> gen_server:call(Pid, is_hand_over).
 get_available_options(Pid, Seat) -> gen_server:call(Pid, {get_available_options, Seat}).
 leave(Pid, Player) -> gen_server:call(Pid, {leave, Player}).
 drop_broke_players(Pid) -> gen_server:call(Pid, drop_broke_players).
+show_down(Pid, CC) -> gen_server:call(Pid, {show_down, CC}).
+hand_over(Pid) -> gen_server:call(Pid, hand_over).
 
 %% gen_server.
 
@@ -86,6 +90,11 @@ handle_call(get_flop_actor, _From, State) ->
     {reply, get_next_seat_(State, Dealer), State};
 handle_call(get_blinds, _From, State) ->
     {reply, get_blinds_(State), State};
+handle_call({set_money, #seat{position=Pos}, Money}, _From, State) ->
+    Seat = lists:keyfind(Pos, #seat.position, State#state.seats),
+    NewSeat = Seat#seat{money=Money},
+    NewSeats = lists:store(Pos, #seat.position, State#state.seats, NewSeat),
+    {reply, ok, State#state{seats=NewSeats}};
 handle_call({place_bet, Seat, BetAmount}, _From, State) ->
     NewState = place_bet_(State, Seat, BetAmount),
     {reply, ok, NewState};
@@ -141,22 +150,25 @@ handle_call(clear_last_action, _From, State) ->
            (Seat) -> Seat#seat{last_action=undefined}
         end, State#state.seats),
     {reply, ok, State#state{seats=NewSeats}};
-handle_call(pot_bets, _From, #state{seats=Seats,pot=Pot}=State) ->
-    PotAddition = lists:sum([Bet || #seat{bet=Bet} <- Seats]),
+handle_call(pot_bets, _From, #state{seats=Seats,pots=Pots}=State) ->
+    NewPots = pot:build_pots([{Money,Pos} || #seat{money=Money,position=Pos} <- Seats]),
+    MergedPots = pot:merge_pots(Pots, NewPots),
     NewSeats = [S#seat{bet=0} || S <- Seats],
-    {reply, ok, State#state{seats=NewSeats,pot=Pot+PotAddition}};
-handle_call(get_pot, _From, State) ->
-    {reply, State#state.pot, State};
-handle_call({distribute_winning, WinningSeats}, _From, #state{pot=Pot,seats=OSeats}=State) ->
-    WinningPerPlayer = Pot / length(WinningSeats),
-    NewSeats = lists:foldl(
-        fun(#seat{position=Pos}, Seats) ->
-                Seat = lists:keyfind(Pos, #seat.position, Seats),
-                Money = Seat#seat.money,
-                NewSeat = Seat#seat{money=Money+WinningPerPlayer},
-                lists:keystore(Pos, #seat.position, Seats, NewSeat)
-        end, OSeats, WinningSeats),
-    {reply, ok, State#state{seats=lists:reverse(NewSeats),pot=0}};
+    {reply, ok, State#state{seats=NewSeats,pots=MergedPots}};
+handle_call(get_pots, _From, State) ->
+    {reply, State#state.pots, State};
+handle_call({distribute_winning, _WinningSeats}, _From, #state{pots=Pots,seats=Seats}=State) ->
+    % TODO: remove this method b/c distribute_winning is now handled internally
+    NewSeats = distribute_pots_(Pots, Seats),
+    % WinningPerPlayer = Pot / length(WinningSeats),
+    % NewSeats = lists:foldl(
+    %     fun(#seat{position=Pos}, Seats) ->
+    %             Seat = lists:keyfind(Pos, #seat.position, Seats),
+    %             Money = Seat#seat.money,
+    %             NewSeat = Seat#seat{money=Money+WinningPerPlayer},
+    %             lists:keystore(Pos, #seat.position, Seats, NewSeat)
+    %     end, OSeats, WinningSeats),
+    {reply, ok, State#state{seats=NewSeats,pots=[]}};
 handle_call(prepare_new_game, _From, #state{seats=Seats}=State) ->
     NewSeats = [Seat#seat{last_action=undefined,cards=[]} || Seat <- Seats],
     {reply, ok, State#state{seats=NewSeats}};
@@ -173,21 +185,27 @@ handle_call({get_available_options, Seat}, _From, State) ->
         {false,false} -> [call, raise]
     end,
     {reply, [fold|Options], State};
-handle_call({leave, Player}, _From, #state{seats=Seats,pot=Pot}=State) ->
-    {Reply,NewSeats,ExistingBet} = case lists:keyfind(Player, #seat.player, Seats) of
+handle_call({leave, Player}, _From, #state{seats=Seats}=State) ->
+    {Reply,NewSeats} = case lists:keyfind(Player, #seat.player, Seats) of
         false -> 
-            {{error, no_such_player}, Seats, 0};
+            {{error, no_such_player}, Seats};
         #seat{position=Pos,bet=Bet} -> 
-            NewSeat = #seat{position=Pos},
-            {ok, lists:keystore(Pos, #seat.position, Seats, NewSeat), Bet}
+            NewSeat = #seat{position=Pos,bet=Bet},
+            {ok, lists:keystore(Pos, #seat.position, Seats, NewSeat)}
     end,
-    {reply, Reply, State#state{seats=NewSeats,pot=Pot+ExistingBet}};
+    {reply, Reply, State#state{seats=NewSeats}};
 handle_call(drop_broke_players, _From, #state{seats=Seats}=State) ->
     NewSeats = lists:map(
         fun(#seat{money=0,position=Pos}) -> #seat{position=Pos};
            (Seat) -> Seat
         end, Seats),
     {reply, ok, State#state{seats=NewSeats}};
+handle_call({show_down, _CC}, _From, State) ->
+    %TODO
+    {reply, [{pot, [{winner,hand}]}], State};
+handle_call(hand_over, _From, State) ->
+    %TODO
+    {reply, [{pot, [winner]}], State};
 handle_call(_Request, _From, State) ->
 	{reply, ignored, State}.
 
@@ -235,7 +253,8 @@ place_bet_(State, #seat{position=Pos}, BetAmount) ->
     % argument is out-of-date
     CurSeat = lists:keyfind(Pos, #seat.position, State#state.seats),
     #seat{bet=Bet,money=Money} = CurSeat,
-    NewSeat = CurSeat#seat{bet=BetAmount, money=Money-(BetAmount-Bet)},
+    BetAddition = min(Money, BetAmount - Bet),
+    NewSeat = CurSeat#seat{bet=BetAmount, money=Money-BetAddition},
     NewSeats = lists:keystore(Pos, #seat.position, State#state.seats, NewSeat),
     State#state{seats=NewSeats}.
 
@@ -260,3 +279,5 @@ is_highest_bet_(#state{seats=Seats}=State, #seat{position=Pos}) ->
     #seat{bet=Bet} = lists:keyfind(Pos, #seat.position, Seats),
     get_call_amount_(State) == Bet.
 
+distribute_pots_(_Pots, Seats) ->
+    Seats.
