@@ -1,5 +1,5 @@
 -module(pot).
--export([build_pots/1, merge_pots/2]).
+-export([build_pots/1, merge_pots/2, split_single_player_pots/1]).
 -include("records.hrl").
 
 build_pots(MoneyIdTuples) ->
@@ -26,3 +26,6 @@ merge_pots(Pots1, Pots2) ->
                 end
         end, Pots1, Pots2).
     
+split_single_player_pots(Pots) ->
+    {[P || P <- Pots, length(P#pot.eligible_ids) == 1],
+     [P || P <- Pots, length(P#pot.eligible_ids) > 1]}.

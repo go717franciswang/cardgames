@@ -93,7 +93,7 @@ handle_call(get_blinds, _From, State) ->
 handle_call({set_money, #seat{position=Pos}, Money}, _From, State) ->
     Seat = lists:keyfind(Pos, #seat.position, State#state.seats),
     NewSeat = Seat#seat{money=Money},
-    NewSeats = lists:store(Pos, #seat.position, State#state.seats, NewSeat),
+    NewSeats = lists:keystore(Pos, #seat.position, State#state.seats, NewSeat),
     {reply, ok, State#state{seats=NewSeats}};
 handle_call({place_bet, Seat, BetAmount}, _From, State) ->
     NewState = place_bet_(State, Seat, BetAmount),
@@ -151,10 +151,21 @@ handle_call(clear_last_action, _From, State) ->
         end, State#state.seats),
     {reply, ok, State#state{seats=NewSeats}};
 handle_call(pot_bets, _From, #state{seats=Seats,pots=Pots}=State) ->
-    NewPots = pot:build_pots([{Money,Pos} || #seat{money=Money,position=Pos} <- Seats]),
+    BetSeatId = [{min(B,M),Pos} || #seat{position=Pos,bet=B,money=M} <- Seats, B > 0],
+    NewPots = pot:build_pots(BetSeatId),
     MergedPots = pot:merge_pots(Pots, NewPots),
-    NewSeats = [S#seat{bet=0} || S <- Seats],
-    {reply, ok, State#state{seats=NewSeats,pots=MergedPots}};
+    {SinglePots, MultiPots} = pot:split_single_player_pots(MergedPots),
+    NewSeats0 = lists:map(
+        fun(#seat{bet=B,money=M}=S) ->
+                S#seat{bet=0,money=max(0,M-B)}
+        end, Seats),
+    NewSeats = lists:foldl(
+        fun(#pot{money=M1,eligible_ids=[Pos]},Ss) ->
+                S = lists:keyfind(Pos, #seat.position, Ss),
+                M0 = S#seat.money,
+                lists:keystore(Pos, #seat.position, Ss, S#seat{money=M0+M1})
+        end, NewSeats0, SinglePots),
+    {reply, ok, State#state{seats=NewSeats,pots=MultiPots}};
 handle_call(get_pots, _From, State) ->
     {reply, State#state.pots, State};
 handle_call({distribute_winning, _WinningSeats}, _From, #state{pots=Pots,seats=Seats}=State) ->
@@ -251,10 +262,8 @@ get_next_seat_(State, #seat{position=Pos}) ->
 place_bet_(State, #seat{position=Pos}, BetAmount) ->
     % use position to get the most current seat data in case seat in the
     % argument is out-of-date
-    CurSeat = lists:keyfind(Pos, #seat.position, State#state.seats),
-    #seat{bet=Bet,money=Money} = CurSeat,
-    BetAddition = min(Money, BetAmount - Bet),
-    NewSeat = CurSeat#seat{bet=BetAmount, money=Money-BetAddition},
+    Seat = lists:keyfind(Pos, #seat.position, State#state.seats),
+    NewSeat = Seat#seat{bet=BetAmount},
     NewSeats = lists:keystore(Pos, #seat.position, State#state.seats, NewSeat),
     State#state{seats=NewSeats}.
 
