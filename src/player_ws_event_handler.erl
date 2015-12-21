@@ -9,13 +9,14 @@
 -export([terminate/2]).
 -export([code_change/3]).
 
--record(state, {}).
+-record(state, {ws}).
 
-init([]) ->
-    {ok, #state{}}.
+init([WS]) ->
+    {ok, #state{ws=WS}}.
 
 handle_event(Event, State) ->
     io:format("Got notification: ~p~n", [Event]),
+    State#state.ws ! {reply, io_lib:format("~p", [Event])},
     {ok, State}.
 
 handle_call(_Request, State) ->
