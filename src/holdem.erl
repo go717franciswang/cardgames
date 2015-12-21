@@ -45,7 +45,7 @@ waiting_for_players({sit, Player}, _From, StateData) ->
     io:format("broadcast new player: ~p~n", [Player]),
     lists:foreach(
         fun(#seat{player=P}) -> 
-                player:new_player(P, Player) 
+                player:notify(P, {new_player, Player})
         end, seats:show_active_seats(StateData#state.seats)),
     seats:join(StateData#state.seats, Player),
     {reply, ok, waiting_for_players, StateData};
@@ -60,7 +60,7 @@ waiting_for_players(start, _From, #state{seats=Seats,timeout=Timeout}=StateData)
     deal_cards_(NewState, SmallBlind, DealTimes),
     ActorSeat = seats:get_preflop_actor(Seats),
     Options = seats:get_available_options(Seats, ActorSeat),
-    player:signal_turn(ActorSeat#seat.player, Options),
+    player:notify(ActorSeat#seat.player, {signal_turn, Options}),
     Timer = gen_fsm:start_timer(Timeout, get_timeout_action_(Options)),
     {reply, ok, game_in_progess, 
         NewState#state{actor=ActorSeat, stage=preflop, actor_options=Options, timer=Timer}};
@@ -148,7 +148,7 @@ handle_action_(#state{seats=Seats,actor=Actor,stage=Stage,timer=Timer,timeout=Ti
     NewTimer = case NewState#state.actor of
         undefined -> undefined;
         NextActor -> 
-            player:signal_turn(NextActor#seat.player, NewState#state.actor_options),
+            player:notify(NextActor#seat.player, {signal_turn, NewState#state.actor_options}),
             gen_fsm:start_timer(Timeout, get_timeout_action_(NewState#state.actor_options))
     end,
     {ok, NewStateName, NewState#state{timer=NewTimer}}.

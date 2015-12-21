@@ -98,7 +98,7 @@ handle_call({place_bet, Seat, BetAmount}, _From, State) ->
     NewState = place_bet_(State, Seat, BetAmount),
     {reply, ok, NewState};
 handle_call({deal_card, #seat{position=Pos,player=Player}, Card}, _From, State) ->
-    player:deal_card(Player, Card),
+    player:notify(Player, {deal_card, Card}),
     Seat = lists:keyfind(Pos,#seat.position,State#state.seats),
     Cards = Seat#seat.cards,
     NewSeat = Seat#seat{cards=[Card|Cards]},

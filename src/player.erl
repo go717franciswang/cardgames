@@ -2,13 +2,12 @@
 -behaviour(gen_fsm).
 
 %% API.
--export([start_link/0, create_table/1, join_table/2, start_game/1, deal_card/2,
-        show_cards/1, new_player/2, signal_turn/2, take_turn/2, sit/1,
-        leave/1, add_event_handler/3]).
+-export([start_link/0, create_table/1, join_table/2, start_game/1, show_cards/1, 
+        take_turn/2, sit/1, leave/1, add_event_handler/3, notify/2]).
 
 %% gen_fsm.
 -export([init/1]).
--export([lobby/3, in_game/2, in_game/3]).
+-export([lobby/3, in_game/3]).
 -export([handle_event/3]).
 -export([handle_sync_event/4]).
 -export([handle_info/3]).
@@ -28,14 +27,12 @@ create_table(Pid) -> gen_fsm:sync_send_event(Pid, create_table).
 join_table(Pid, TableId) -> gen_fsm:sync_send_event(Pid, {join_table, TableId}).
 sit(Pid) -> gen_fsm:sync_send_event(Pid, sit).
 start_game(Pid) -> gen_fsm:sync_send_event(Pid, start_game).
-deal_card(Pid, Card) -> gen_fsm:send_event(Pid, {deal_card, Card}).
 show_cards(Pid) -> gen_fsm:sync_send_event(Pid, show_cards).
-new_player(Pid, Player) -> gen_fsm:send_event(Pid, {new_player, Player}).
-signal_turn(Pid, Options) -> gen_fsm:send_event(Pid, {signal_turn, Options}).
 take_turn(Pid, Action) -> gen_fsm:sync_send_event(Pid, {take_turn, Action}).
 leave(Pid) -> gen_fsm:sync_send_event(Pid, leave).
 add_event_handler(Pid, Handler, Args) -> 
     gen_fsm:sync_send_all_state_event(Pid, {add_event_handler, Handler, Args}).
+notify(Pid, Event) -> gen_fsm:send_all_state_event(Pid, {notify, Event}).
 
 %% gen_fsm.
 
@@ -70,22 +67,11 @@ in_game({take_turn, Action}, _From, StateData) ->
     Reply = holdem:take_turn(StateData#state.game, Action),
     {reply, Reply, in_game, StateData}.
 
-in_game({new_player, Player}, StateData) ->
+handle_event({notify, Event}, StateName, StateData) ->
+    io:format("~p got notification: ~p~n", [self(), Event]),
     EM = StateData#state.em,
-    gen_event:notify(EM, {new_player, Player}),
-    io:format("~p new player: ~p~n", [self(), Player]),
-    {next_state, in_game, StateData};
-in_game({deal_card, Card}, StateData) ->
-    EM = StateData#state.em,
-    gen_event:notify(EM, {deal_card, Card}),
-    io:format("~p got card: ~p~n", [self(), Card]),
-    {next_state, in_game, StateData};
-in_game({signal_turn, Options}, StateData) ->
-    EM = StateData#state.em,
-    gen_event:notify(EM, {signal_turn, Options}),
-    io:format("~p got signal to take turn (~p)~n", [self(), Options]),
-    {next_state, in_game, StateData}.
-
+    gen_event:notify(EM, Event),
+    {next_state, StateName, StateData};
 handle_event(_Event, StateName, StateData) ->
 	{next_state, StateName, StateData}.
 
