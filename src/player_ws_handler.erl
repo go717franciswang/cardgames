@@ -7,7 +7,7 @@
 -export([websocket_info/3]).
 -export([websocket_terminate/3]).
 
--record(state, { player_pid
+-record(state, { player
 }).
 
 init(_, _, _) ->
@@ -15,19 +15,37 @@ init(_, _, _) ->
 
 websocket_init(_, Req, _Opts) ->
     io:format("Player connected~n"),
-    {ok, Pid} = players_sup:create_player(),
-	Req2 = cowboy_req:compact(Req),
-    {ok, Req2, #state{player_pid=Pid}}.
+    {ok, Player} = players_sup:create_player(),
+	NewReq = cowboy_req:compact(Req),
+    {ok, NewReq, #state{player=Player}}.
 
-websocket_handle({text, <<"create_table">>}, Req, State) ->
-    player:create_table(State#state.player_pid),
-    {reply, {text, "Created table"}, Req, State};
+websocket_handle({text, <<"create_table">>}, Req, #state{player=Player}=State) ->
+    {ok, _Table} = player:create_table(Player),
+    {reply, {text, "ok"}, Req, State};
 websocket_handle({text, <<"list_tables">>}, Req, State) ->
     Tables = tables_sup:list_tables(),
     {reply, {text, io_lib:format("~p", [Tables])}, Req, State};
-websocket_handle({text, <<"join_table ", Id/binary>>}, Req, State) ->
-    player:join_table(State#state.player_pid, erlang:binary_to_integer(Id)),
-    {reply, {text, "Joined table"}, Req, State};
+websocket_handle({text, <<"join_table ", Id/binary>>}, Req, #state{player=Player}=State) ->
+    player:join_table(Player, erlang:binary_to_integer(Id)),
+    {reply, {text, "ok"}, Req, State};
+websocket_handle({text, <<"sit">>}, Req, #state{player=Player}=State) ->
+    ok = player:sit(Player),
+    {reply, {text, "ok"}, Req, State};
+websocket_handle({text, <<"start_game">>}, Req, #state{player=Player}=State) ->
+    ok = player:start_game(Player),
+    {reply, {text, "ok"}, Req, State};
+websocket_handle({text, <<"show_cards">>}, Req, #state{player=Player}=State) ->
+    % TODO
+    _Cards = player:show_cards(Player),
+    {reply, {text, "ok"}, Req, State};
+websocket_handle({text, <<"take_turn ", Action/binary>>}, Req, #state{player=Player}=State) ->
+    % TODO
+    Reply = player:take_turn(Player, erlang:binary_to_existing_atom(Action)),
+    {reply, {text, Reply}, Req, State};
+websocket_handle({text, <<"leave">>}, Req, #state{player=Player}=State) ->
+    % TODO
+    ok = player:leave(Player),
+    {reply, {text, "ok"}, Req, State};
 websocket_handle({text, Data}, Req, State) ->
     io:format("Got message: ~p~n", [Data]),
 	{reply, {text, Data}, Req, State};

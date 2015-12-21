@@ -1,3 +1,3 @@
 PROJECT = cardgames
-DEPS = cowboy
+DEPS = cowboy jiffy
 include erlang.mk
