@@ -2,7 +2,7 @@
 -export([get_hand/1, get_royal_flush/1, get_straight_flush/1, get_straight/1,
          get_flush/1, get_four_of_a_kind/1, get_full_house/1, get_three_of_a_kind/1,
          get_two_pair/1, get_one_pair/1, get_high_card/1, get_highest_hand/1, 
-         choose/2, is_higher_hand/2, str_to_card/1, strs_to_cards/1]).
+         choose/2, is_higher_hand/2, str_to_card/1, strs_to_cards/1, cards_to_strs/1]).
 
 -include("records.hrl").
 
@@ -162,7 +162,6 @@ str_to_card([RankChar, SuitChar]) ->
     #card{rank=char_to_rank(RankChar), suit=char_to_suit(SuitChar)}.
 strs_to_cards(Strs) -> [str_to_card(S) || S <- Strs].
 
-
 char_to_rank($2) -> two;
 char_to_rank($3) -> three;
 char_to_rank($4) -> four;
@@ -181,4 +180,27 @@ char_to_suit($H) -> heart;
 char_to_suit($S) -> spade;
 char_to_suit($D) -> diamond;
 char_to_suit($C) -> club.
+
+card_to_str(#card{rank=Rank, suit=Suit}) ->
+    [rank_to_char(Rank), suit_to_char(Suit)].
+cards_to_strs(Cards) -> [card_to_str(C) || C <- Cards].
+
+rank_to_char(two) -> $2;
+rank_to_char(three) -> $3;
+rank_to_char(four) -> $4;
+rank_to_char(five) -> $5;
+rank_to_char(six) -> $6;
+rank_to_char(seven) -> $7;
+rank_to_char(eight) -> $8;
+rank_to_char(nine) -> $9;
+rank_to_char(ten) -> $T;
+rank_to_char(jack) -> $J;
+rank_to_char(queen) -> $Q;
+rank_to_char(king) -> $K;
+rank_to_char(ace) -> $A.
+
+suit_to_char(heart) -> $H;
+suit_to_char(spade) -> $S;
+suit_to_char(diamond) -> $D;
+suit_to_char(club) -> $C.
 

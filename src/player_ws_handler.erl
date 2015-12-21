@@ -35,15 +35,15 @@ websocket_handle({text, <<"start_game">>}, Req, #state{player=Player}=State) ->
     ok = player:start_game(Player),
     {reply, {text, "ok"}, Req, State};
 websocket_handle({text, <<"show_cards">>}, Req, #state{player=Player}=State) ->
-    % TODO
-    _Cards = player:show_cards(Player),
-    {reply, {text, "ok"}, Req, State};
+    Cards = player:show_cards(Player),
+    {reply, {text, jiffy:encode(hand:cards_to_strs(Cards))}, Req, State};
 websocket_handle({text, <<"take_turn ", Action/binary>>}, Req, #state{player=Player}=State) ->
-    % TODO
-    Reply = player:take_turn(Player, erlang:binary_to_existing_atom(Action)),
+    Reply = case player:take_turn(Player, erlang:binary_to_existing_atom(Action)) of
+        ok -> "ok";
+        {error, E} -> jiffy:encode({[{error,E}]})
+    end,
     {reply, {text, Reply}, Req, State};
 websocket_handle({text, <<"leave">>}, Req, #state{player=Player}=State) ->
-    % TODO
     ok = player:leave(Player),
     {reply, {text, "ok"}, Req, State};
 websocket_handle({text, Data}, Req, State) ->

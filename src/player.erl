@@ -15,7 +15,7 @@
 -export([terminate/3]).
 -export([code_change/4]).
 
--record(state, {game
+-record(state, {game, em
 }).
 
 %% API.
@@ -38,7 +38,8 @@ leave(Pid) -> gen_fsm:sync_send_event(Pid, leave).
 %% gen_fsm.
 
 init([]) ->
-	{ok, lobby, #state{}}.
+    {ok, EM} = gen_event:start_link(),
+	{ok, lobby, #state{em=EM}}.
 
 lobby(create_table, _From, StateData) ->
     {ok, Pid} = tables_sup:create_table(),
@@ -68,12 +69,18 @@ in_game({take_turn, Action}, _From, StateData) ->
     {reply, Reply, in_game, StateData}.
 
 in_game({new_player, Player}, StateData) ->
+    EM = StateData#state.em,
+    gen_event:notify(EM, {new_player, Player}),
     io:format("~p new player: ~p~n", [self(), Player]),
     {next_state, in_game, StateData};
 in_game({deal_card, Card}, StateData) ->
+    EM = StateData#state.em,
+    gen_event:notify(EM, {deal_card, Card}),
     io:format("~p got card: ~p~n", [self(), Card]),
     {next_state, in_game, StateData};
 in_game({signal_turn, Options}, StateData) ->
+    EM = StateData#state.em,
+    gen_event:notify(EM, {signal_turn, Options}),
     io:format("~p got signal to take turn (~p)~n", [self(), Options]),
     {next_state, in_game, StateData}.
 
