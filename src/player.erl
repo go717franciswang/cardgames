@@ -4,7 +4,7 @@
 %% API.
 -export([start_link/0, create_table/1, join_table/2, start_game/1, deal_card/2,
         show_cards/1, new_player/2, signal_turn/2, take_turn/2, sit/1,
-        leave/1]).
+        leave/1, add_event_handler/3]).
 
 %% gen_fsm.
 -export([init/1]).
@@ -34,6 +34,8 @@ new_player(Pid, Player) -> gen_fsm:send_event(Pid, {new_player, Player}).
 signal_turn(Pid, Options) -> gen_fsm:send_event(Pid, {signal_turn, Options}).
 take_turn(Pid, Action) -> gen_fsm:sync_send_event(Pid, {take_turn, Action}).
 leave(Pid) -> gen_fsm:sync_send_event(Pid, leave).
+add_event_handler(Pid, Handler, Args) -> 
+    gen_fsm:sync_send_all_state_event(Pid, {add_event_handler, Handler, Args}).
 
 %% gen_fsm.
 
@@ -87,6 +89,10 @@ in_game({signal_turn, Options}, StateData) ->
 handle_event(_Event, StateName, StateData) ->
 	{next_state, StateName, StateData}.
 
+handle_sync_event({add_event_handler, Handler, Args}, _From, StateName, StateData) ->
+    EM = StateData#state.em,
+    Reply = gen_event:add_sup_handler(EM, Handler, Args),
+    {reply, Reply, StateName, StateData};
 handle_sync_event(_Event, _From, StateName, StateData) ->
 	{reply, ignored, StateName, StateData}.
 

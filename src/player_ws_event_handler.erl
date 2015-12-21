@@ -14,7 +14,8 @@
 init([]) ->
     {ok, #state{}}.
 
-handle_event(_Event, State) ->
+handle_event(Event, State) ->
+    io:format("Got notification: ~p~n", [Event]),
     {ok, State}.
 
 handle_call(_Request, State) ->

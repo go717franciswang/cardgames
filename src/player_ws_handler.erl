@@ -16,6 +16,7 @@ init(_, _, _) ->
 websocket_init(_, Req, _Opts) ->
     io:format("Player connected~n"),
     {ok, Player} = players_sup:create_player(),
+    player:add_event_handler(Player, player_ws_event_handler, []),
 	NewReq = cowboy_req:compact(Req),
     {ok, NewReq, #state{player=Player}}.
 
