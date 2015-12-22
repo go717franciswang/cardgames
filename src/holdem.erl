@@ -29,7 +29,7 @@ start_link() ->
 join(Pid, Player) -> gen_fsm:sync_send_all_state_event(Pid, {join, Player}).
 leave(Pid, Player) -> gen_fsm:sync_send_all_state_event(Pid, {leave, Player}).
 sit(Pid, Player) -> gen_fsm:sync_send_event(Pid, {sit, Player}).
-start_game(Pid) -> gen_fsm:sync_send_event(Pid, start).
+start_game(Pid) -> gen_fsm:sync_send_event(Pid, start_game).
 get_seats(Pid) -> gen_fsm:sync_send_event(Pid, get_seats).
 take_turn(Pid, Action) -> gen_fsm:sync_send_event(Pid, {take_turn, Action}).
 show_cards(Pid, Player) -> gen_fsm:sync_send_event(Pid, {show_cards, Player}).
@@ -49,7 +49,7 @@ waiting_for_players({sit, Player}, _From, StateData) ->
         end, seats:show_active_seats(StateData#state.seats)),
     seats:join(StateData#state.seats, Player),
     {reply, ok, waiting_for_players, StateData};
-waiting_for_players(start, _From, #state{seats=Seats,timeout=Timeout}=StateData) ->
+waiting_for_players(start_game, _From, #state{seats=Seats,timeout=Timeout}=StateData) ->
     {ok, Deck} = deck:start_link(),
     NewState = StateData#state{deck=Deck},
     seats:rotate_dealer_button(Seats),
@@ -62,6 +62,7 @@ waiting_for_players(start, _From, #state{seats=Seats,timeout=Timeout}=StateData)
     Options = seats:get_available_options(Seats, ActorSeat),
     player:notify(ActorSeat#seat.player, {signal_turn, Options}),
     Timer = gen_fsm:start_timer(Timeout, get_timeout_action_(Options)),
+    broadcast_(StateData, game_started),
     {reply, ok, game_in_progess, 
         NewState#state{actor=ActorSeat, stage=preflop, actor_options=Options, timer=Timer}};
 waiting_for_players(_, _, StateData) ->
@@ -83,6 +84,8 @@ game_in_progess({show_cards, Player}, _From, StateData) ->
 
 game_in_progess({timeout, _Ref, Action}, State) ->
     io:format("last player did not take action in time~n"),
+    Player = State#state.actor#seat.player,
+    broadcast_(State, {timeout, Player}),
     {_Reply, NewStateName, NewState} = handle_action_(State, Action),
     {next_state, NewStateName, NewState}.
 
@@ -91,6 +94,7 @@ handle_event(_Event, StateName, StateData) ->
 
 handle_sync_event({join, Player}, _From, StateName, StateData) ->
     Users = [Player|StateData#state.users],
+    broadcast_(StateData, {join, Player}),
     {reply, ok, StateName, StateData#state{users=Users}};
 handle_sync_event({leave, Player}, _From, StateName, #state{seats=Seats,users=Users}=StateData) ->
     case seats:leave(Seats, Player) of
@@ -98,6 +102,7 @@ handle_sync_event({leave, Player}, _From, StateName, #state{seats=Seats,users=Us
         {error, no_such_player} -> ok
     end,
     NewUsers = lists:delete(Player, Users),
+    broadcast_(StateData, {leave, Player}),
     {reply, ok, StateName, StateData#state{users=NewUsers}};
 handle_sync_event({set_timeout, Timeout}, _From, StateName, StateData) ->
     {reply, ok, StateName, StateData#state{timeout=Timeout}};
@@ -151,11 +156,13 @@ handle_action_(#state{seats=Seats,actor=Actor,stage=Stage,timer=Timer,timeout=Ti
             player:notify(NextActor#seat.player, {signal_turn, NewState#state.actor_options}),
             gen_fsm:start_timer(Timeout, get_timeout_action_(NewState#state.actor_options))
     end,
+    broadcast_(StateData, {take_turn, Actor#seat.player, Action}),
     {ok, NewStateName, NewState#state{timer=NewTimer}}.
 
 draw_community_cards_(#state{community_cards=CC,deck=Deck,seats=Seats}=State, N, NextStage) ->
     deck:draw_cards(Deck, 1), % burn card
     NewCC = CC ++ deck:draw_cards(Deck, N),
+    broadcast_(State, {community_cards, NewCC}),
     io:format("community cards: ~p~n", [NewCC]),
     seats:clear_last_action(Seats),
     seats:pot_bets(Seats),
@@ -164,12 +171,19 @@ draw_community_cards_(#state{community_cards=CC,deck=Deck,seats=Seats}=State, N,
     State#state{community_cards=NewCC,stage=NextStage,actor=NextActor,actor_options=Options}.
 
 show_down_(#state{community_cards=CC,seats=Seats}=State) ->
+    Competitors = seats:get_nonfolded_seats(Seats),
+    lists:foreach(
+        fun(#seat{player=P,cards=CS}) ->
+                broadcast_(State, {reveal_cards, P, CS})
+        end, Competitors),
     seats:pot_bets(Seats),
     PotWins = seats:show_down(Seats, CC),
     lists:foreach(
         fun(#pot_wins{pot=Pot,wins=Plays}) ->
                 io:format("pot: ~p~n", [Pot]),
-                io:format("winning plays: ~p~n~n", [Plays])
+                io:format("winning plays: ~p~n~n", [Plays]),
+                broadcast_(State, {pot, Pot}),
+                broadcast_(State, {winning_plays, Plays})
         end, PotWins),
     game_end_routine_(State),
     State#state{community_cards=[],deck=undefined,stage=show_down,actor=undefined,actor_options=[]}.
@@ -180,7 +194,9 @@ hand_over_(#state{seats=Seats}=State) ->
     lists:foreach(
         fun(#pot_wins{pot=Pot,wins=Plays}) ->
                 io:format("pot: ~p~n", [Pot]),
-                io:format("winning plays: ~p~n~n", [Plays])
+                io:format("winning plays: ~p~n~n", [Plays]),
+                broadcast_(State, {pot, Pot}),
+                broadcast_(State, {winning_plays, Plays})
         end, PotWins),
     game_end_routine_(State),
     State#state{community_cards=[],deck=undefined,stage=hand_over,actor=undefined,actor_options=[]}.
@@ -201,3 +217,5 @@ get_timeout_action_(Options) ->
             false -> fold
     end.
 
+broadcast_(#state{users=Users}, Event) ->
+    lists:foreach(fun(User) -> player:notify(User, Event) end, Users).

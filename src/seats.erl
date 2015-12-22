@@ -10,7 +10,7 @@
         pot_bets/1, get_pots/1, prepare_new_game/1,
         show_cards_from_player/2, is_hand_over/1, get_available_options/2,
         leave/2, drop_broke_players/1, set_money/3, show_down/2, 
-        hand_over/1]).
+        hand_over/1, get_nonfolded_seats/1]).
 
 %% gen_server.
 -export([init/1]).
@@ -55,6 +55,7 @@ leave(Pid, Player) -> gen_server:call(Pid, {leave, Player}).
 drop_broke_players(Pid) -> gen_server:call(Pid, drop_broke_players).
 show_down(Pid, CC) -> gen_server:call(Pid, {show_down, CC}).
 hand_over(Pid) -> gen_server:call(Pid, hand_over).
+get_nonfolded_seats(Pid) -> gen_server:call(Pid, get_nonfolded_seats).
 
 %% gen_server.
 
@@ -231,6 +232,8 @@ handle_call(hand_over, _From, #state{seats=Seats,pots=Pots}=State) ->
         end, Pots),
     NewState = distribute_winning_(State, Reply),
     {reply, Reply, NewState};
+handle_call(get_nonfolded_seats, _From, State) ->
+    {reply, get_nonfolded_seats_(State), State};
 handle_call(_Request, _From, State) ->
 	{reply, ignored, State}.
 
