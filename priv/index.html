@@ -1,0 +1,64 @@
+<html>
+<head>
+<script src="/static/jquery-2.1.4.min.js"></script>
+<style>
+#gameSelect { display: none };
+</style>
+</head>
+<body>
+<button id="conServer">Connect to server</button>
+<div id="gameSelect">
+  <button id="createGame">Create game</button>
+  <button id="listGames">List games</button>
+</div>
+<div id="log"></div>
+<script>
+
+var $conServerBtn = $('#conServer');
+var $log = $('#log');
+var $gameSelect = $('#gameSelect');
+var $createGameBtn = $('#createGame');
+var $listGamesBtn = $('#listGames');
+var websocket;
+
+$conServerBtn.click(function() {
+  websocket = new WebSocket('ws://' + window.location.host + '/player_ws');
+  websocket.onopen = function(e) { onOpen(e) };
+  websocket.onclose = function(e) { onClose(e) };
+  websocket.onmessage = function(e) { onMessage(e) };
+  websocket.onerror = function(e) { onError(e) };
+  $conServerBtn.hide();
+  $gameSelect.show();
+});
+
+$createGameBtn.click(function() {
+  websocket.send('create_table');
+});
+
+$listGamesBtn.click(function() {
+  websocket.send('list_tables');
+});
+
+function log(msg) {
+  $log.prepend('<p>' + msg + '</p>');
+};
+
+function onOpen(e) {
+  log('connected');
+}
+
+function onClose(e) {
+  log('closed');
+}
+
+function onMessage(e) {
+  log('got message: ' + e.data);
+}
+
+function onError(e) {
+  log('error: ' + e.data);
+}
+
+</script>
+</body>
+</html>

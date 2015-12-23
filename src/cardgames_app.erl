@@ -6,9 +6,13 @@
 
 start(_Type, _Args) ->
     Dispatch = cowboy_router:compile([
-            {'_', [{"/player_ws", player_ws_handler, []}]}
+            {'_', [
+                    {"/", cowboy_static, {priv_file, cardgames, "index.html"}},
+                    {"/player_ws", player_ws_handler, []},
+                    {"/static/[...]", cowboy_static, {priv_dir, cardgames, "static"}}
+                ]}
         ]),
-    {ok, _} = cowboy:start_http(my_http_listener, 100, [{port, 8080}],
+    {ok, _} = cowboy:start_http(http, 100, [{port, 8080}],
         [{env, [{dispatch, Dispatch}]}]
     ),
 	cardgames_sup:start_link().
