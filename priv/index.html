@@ -22,13 +22,7 @@ var $listGamesBtn = $('#listGames');
 var websocket;
 
 $conServerBtn.click(function() {
-  websocket = new WebSocket('ws://' + window.location.host + '/player_ws');
-  websocket.onopen = function(e) { onOpen(e) };
-  websocket.onclose = function(e) { onClose(e) };
-  websocket.onmessage = function(e) { onMessage(e) };
-  websocket.onerror = function(e) { onError(e) };
-  $conServerBtn.hide();
-  $gameSelect.show();
+  connect();
 });
 
 $createGameBtn.click(function() {
@@ -38,6 +32,16 @@ $createGameBtn.click(function() {
 $listGamesBtn.click(function() {
   websocket.send('list_tables');
 });
+
+function connect() {
+  websocket = new WebSocket('ws://' + window.location.host + '/player_ws');
+  websocket.onopen = function(e) { onOpen(e) };
+  websocket.onclose = function(e) { onClose(e) };
+  websocket.onmessage = function(e) { onMessage(e) };
+  websocket.onerror = function(e) { onError(e) };
+  $conServerBtn.hide();
+  $gameSelect.show();
+};
 
 function log(msg) {
   $log.prepend('<p>' + msg + '</p>');
@@ -49,6 +53,8 @@ function onOpen(e) {
 
 function onClose(e) {
   log('closed');
+  $conServerBtn.show();
+  $gameSelect.hide();
 }
 
 function onMessage(e) {

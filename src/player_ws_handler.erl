@@ -25,7 +25,8 @@ websocket_handle({text, <<"create_table">>}, Req, #state{player=Player}=State) -
     {reply, {text, "ok"}, Req, State};
 websocket_handle({text, <<"list_tables">>}, Req, State) ->
     Tables = tables_sup:list_tables(),
-    {reply, {text, io_lib:format("~p", [Tables])}, Req, State};
+    Reply = build_reply_(list_tables, jiffy:encode(Tables)),
+    {reply, {text, Reply}, Req, State};
 websocket_handle({text, <<"join_table ", Id/binary>>}, Req, #state{player=Player}=State) ->
     player:join_table(Player, erlang:binary_to_integer(Id)),
     {reply, {text, "ok"}, Req, State};
@@ -62,3 +63,8 @@ websocket_info(_Info, Req, State) ->
 
 websocket_terminate(_Reason, _Req, _State) ->
 	ok.
+
+build_reply_(Header, Content) ->
+    HeaderBinary = erlang:atom_to_binary(Header, utf8),
+    Sep = <<"|">>,
+    <<HeaderBinary/binary, Sep/binary, Content/binary>>.
