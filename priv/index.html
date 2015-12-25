@@ -2,7 +2,9 @@
 <head>
 <script src="/static/jquery-2.1.4.min.js"></script>
 <style>
-#gameSelect { display: none };
+#gameSelect { display: none }
+#table { display: none }
+#leaveBtn { display: none }
 </style>
 </head>
 <body>
@@ -13,15 +15,29 @@
   <div id="tables">
   </div>
 </div>
+<div id="table">
+  <button id="sitBtn">Sit</button>
+  <button id="leaveBtn">Leave</button>
+  
+  <div class="seat">_</div>
+  <div class="seat">_</div>
+  <div class="seat">_</div>
+  <div class="seat">_</div>
+  <div class="seat">_</div>
+  <div class="seat">_</div>
+</div>
 <div id="log"></div>
 <script>
 
 var $conServerBtn = $('#conServer');
 var $log = $('#log');
 var $gameSelect = $('#gameSelect');
+var $table = $('#table');
 var $createGameBtn = $('#createGame');
 var $listGamesBtn = $('#listGames');
 var $tables = $('#tables');
+var $sitBtn = $('#sitBtn');
+var $leaveBtn = $('#leaveBtn');
 var websocket;
 
 $conServerBtn.click(function() {
@@ -34,6 +50,10 @@ $createGameBtn.click(function() {
 
 $listGamesBtn.click(function() {
   websocket.send('list_tables');
+});
+
+$sitBtn.click(function() {
+  websocket.send('sit');
 });
 
 $gameSelect.on('click', '.joinBtns', function() {
@@ -72,6 +92,8 @@ function onMessage(e) {
     var content = JSON.parse(s[1]);
     
     switch(header) {
+      case 'create_table':
+        handle_create_table(content);
       case 'list_tables':
         handle_list_tables(content);
         break;
@@ -80,6 +102,13 @@ function onMessage(e) {
     }
   } else {
     log('unhandled reply: ' + e.data);
+  }
+}
+
+function handle_create_table(res) {
+  if (res['status'] = 'ok') {
+    $gameSelect.hide();
+    $table.show();
   }
 }
 

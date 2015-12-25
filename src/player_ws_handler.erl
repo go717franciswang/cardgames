@@ -22,7 +22,7 @@ websocket_init(_, Req, _Opts) ->
 
 websocket_handle({text, <<"create_table">>}, Req, #state{player=Player}=State) ->
     {ok, _Table} = player:create_table(Player),
-    {reply, {text, "ok"}, Req, State};
+    {reply, {text, "create_table|{\"status\": \"ok\"}"}, Req, State};
 websocket_handle({text, <<"list_tables">>}, Req, State) ->
     Tables = tables_sup:list_tables(),
     Reply = build_reply_(list_tables, jiffy:encode(Tables)),
