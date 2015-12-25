@@ -74,7 +74,6 @@ build_reply_(Header, Content) ->
 
 build_seats_reply_(Header, Player) ->
     Seats = player:show_seats(Player),
-    io:format("seats:~p~n", [Seats]),
     Bin = jiffy:encode(#{status=>ok, seats=>seats_to_maps_(Seats)}),
     build_reply_(Header, Bin).
 

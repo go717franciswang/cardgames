@@ -56,7 +56,7 @@ $sitBtn.click(function() {
   websocket.send('sit');
 });
 
-$gameSelect.on('click', '.joinBtns', function() {
+$gameSelect.on('click', '.joinBtn', function() {
   console.log(this);
   websocket.send('join_table ' + this.getAttribute('data'));
 });
@@ -83,6 +83,7 @@ function onClose(e) {
   log('closed');
   $conServerBtn.show();
   $gameSelect.hide();
+  $game.hide();
 }
 
 function onMessage(e) {
@@ -96,8 +97,9 @@ function onMessage(e) {
         handle_create_table(content);
       case 'join_table':
         handle_create_table(content);
+        update_seats(content);
       case 'sit':
-        handle_sit(content);
+        update_seats(content);
       case 'list_tables':
         handle_list_tables(content);
         break;
@@ -109,7 +111,19 @@ function onMessage(e) {
   }
 }
 
-function handle_sit(table) {
+function update_seats(res) {
+  if (res['status'] != 'ok') return;
+
+  var seats = res['seats'];
+  for (var i = 0; i < seats.length; i++) {
+    var seat = seats[i];
+    var $seat = $('.seat:nth('+i+')');
+    if (seat['player']) {
+      $seat.html('<span>Money: '+seat['money']+'</span>, <span>Bet:'+seat['bet']+'</span>');
+    } else {
+      $seat.html('_');
+    }
+  }
 }
 
 function handle_create_table(res) {
@@ -123,7 +137,7 @@ function handle_list_tables(tables) {
   $tables.empty();
   for (var i = 0; i < tables.length; i++) {
     var id = tables[i];
-    $tables.append('<div>'+id+' <button class="joinBtns" data="'+id+'">Join</button></div>');
+    $tables.append('<div>'+id+' <button class="joinBtn" data="'+id+'">Join</button></div>');
   }
 }
 
