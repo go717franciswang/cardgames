@@ -4,7 +4,7 @@
 %% API.
 -export([start_link/0]).
 -export([join/2, sit/2, start_game/1, get_seats/1, take_turn/2, show_cards/2,
-         leave/2, set_timeout/2]).
+         leave/2, set_timeout/2, show_seats/1]).
 
 %% gen_fsm.
 -export([init/1]).
@@ -30,10 +30,11 @@ join(Pid, Player) -> gen_fsm:sync_send_all_state_event(Pid, {join, Player}).
 leave(Pid, Player) -> gen_fsm:sync_send_all_state_event(Pid, {leave, Player}).
 sit(Pid, Player) -> gen_fsm:sync_send_event(Pid, {sit, Player}).
 start_game(Pid) -> gen_fsm:sync_send_event(Pid, start_game).
-get_seats(Pid) -> gen_fsm:sync_send_event(Pid, get_seats).
+get_seats(Pid) -> gen_fsm:sync_send_all_state_event(Pid, get_seats).
 take_turn(Pid, Action) -> gen_fsm:sync_send_event(Pid, {take_turn, Action}).
 show_cards(Pid, Player) -> gen_fsm:sync_send_event(Pid, {show_cards, Player}).
 set_timeout(Pid, Timeout) -> gen_fsm:sync_send_all_state_event(Pid, {set_timeout, Timeout}).
+show_seats(Pid) -> gen_fsm:sync_send_all_state_event(Pid, show_seats).
 
 %% gen_fsm.
 
@@ -68,8 +69,6 @@ waiting_for_players(start_game, _From, #state{seats=Seats,timeout=Timeout}=State
 waiting_for_players(_, _, StateData) ->
     {reply, ignored, waiting_for_players, StateData}.
 
-game_in_progess(get_seats, _From, StateData) ->
-    {reply, StateData#state.seats, game_in_progess, StateData};
 game_in_progess({take_turn,_}, {Player,_Tag}, #state{actor=Actor}=State) when Player /= Actor#seat.player ->
     {reply, {error, not_your_turn}, game_in_progess, State};
 game_in_progess({take_turn,Action}, _From, #state{actor_options=Options}=State) ->
@@ -104,6 +103,10 @@ handle_sync_event({leave, Player}, _From, StateName, #state{seats=Seats,users=Us
     NewUsers = lists:delete(Player, Users),
     broadcast_(StateData, {leave, Player}),
     {reply, ok, StateName, StateData#state{users=NewUsers}};
+handle_sync_event(get_seats, _From, StateName, StateData) ->
+    {reply, StateData#state.seats, StateName, StateData};
+handle_sync_event(show_seats, _From, StateName, StateData) ->
+    {reply, seats:show_seats(StateData#state.seats), StateName, StateData};
 handle_sync_event({set_timeout, Timeout}, _From, StateName, StateData) ->
     {reply, ok, StateName, StateData#state{timeout=Timeout}};
 handle_sync_event(_Event, _From, StateName, StateData) ->

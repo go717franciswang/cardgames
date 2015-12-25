@@ -3,7 +3,7 @@
 
 %% API.
 -export([start_link/0, create_table/1, join_table/2, start_game/1, show_cards/1, 
-        take_turn/2, sit/1, leave/1, add_event_handler/3, notify/2]).
+        take_turn/2, sit/1, leave/1, add_event_handler/3, notify/2, show_seats/1]).
 
 %% gen_fsm.
 -export([init/1]).
@@ -33,6 +33,7 @@ leave(Pid) -> gen_fsm:sync_send_event(Pid, leave).
 add_event_handler(Pid, Handler, Args) -> 
     gen_fsm:sync_send_all_state_event(Pid, {add_event_handler, Handler, Args}).
 notify(Pid, Event) -> gen_fsm:send_all_state_event(Pid, {notify, Event}).
+show_seats(Pid) -> gen_fsm:sync_send_event(Pid, show_seats).
 
 %% gen_fsm.
 
@@ -65,6 +66,9 @@ in_game(start_game, _From, StateData) ->
     {reply, Reply, in_game, StateData};
 in_game({take_turn, Action}, _From, StateData) ->
     Reply = holdem:take_turn(StateData#state.game, Action),
+    {reply, Reply, in_game, StateData};
+in_game(show_seats, _From, StateData) ->
+    Reply = holdem:show_seats(StateData#state.game),
     {reply, Reply, in_game, StateData}.
 
 handle_event({notify, Event}, StateName, StateData) ->

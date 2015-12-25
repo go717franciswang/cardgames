@@ -9,6 +9,7 @@
 
 -record(state, { player
 }).
+-include("records.hrl").
 
 init(_, _, _) ->
 	{upgrade, protocol, cowboy_websocket}.
@@ -22,17 +23,19 @@ websocket_init(_, Req, _Opts) ->
 
 websocket_handle({text, <<"create_table">>}, Req, #state{player=Player}=State) ->
     {ok, _Table} = player:create_table(Player),
-    {reply, {text, "create_table|{\"status\": \"ok\"}"}, Req, State};
+    {reply, {text, "create_table|{\"status\":\"ok\"}"}, Req, State};
 websocket_handle({text, <<"list_tables">>}, Req, State) ->
     Tables = tables_sup:list_tables(),
     Reply = build_reply_(list_tables, jiffy:encode(Tables)),
     {reply, {text, Reply}, Req, State};
 websocket_handle({text, <<"join_table ", Id/binary>>}, Req, #state{player=Player}=State) ->
-    player:join_table(Player, erlang:binary_to_integer(Id)),
-    {reply, {text, "ok"}, Req, State};
+    ok = player:join_table(Player, erlang:binary_to_integer(Id)),
+    Reply = build_seats_reply_(sit, Player),
+    {reply, {text, Reply}, Req, State};
 websocket_handle({text, <<"sit">>}, Req, #state{player=Player}=State) ->
     ok = player:sit(Player),
-    {reply, {text, "ok"}, Req, State};
+    Reply = build_seats_reply_(sit, Player),
+    {reply, {text, Reply}, Req, State};
 websocket_handle({text, <<"start_game">>}, Req, #state{player=Player}=State) ->
     ok = player:start_game(Player),
     {reply, {text, "ok"}, Req, State};
@@ -68,3 +71,15 @@ build_reply_(Header, Content) ->
     HeaderBinary = erlang:atom_to_binary(Header, utf8),
     Sep = <<"|">>,
     <<HeaderBinary/binary, Sep/binary, Content/binary>>.
+
+build_seats_reply_(Header, Player) ->
+    Seats = player:show_seats(Player),
+    io:format("seats:~p~n", [Seats]),
+    Bin = jiffy:encode(#{status=>ok, seats=>seats_to_maps_(Seats)}),
+    build_reply_(Header, Bin).
+
+seat_to_map_(#seat{position=Pos, player=undefined}) ->
+    #{position=>Pos};
+seat_to_map_(#seat{position=Pos, player=Player, money=Money, bet=Bet}) ->
+    #{position=>Pos, player=>pid_to_list(Player), money=>Money, bet=>Bet}.
+seats_to_maps_(Seats) -> [seat_to_map_(S) || S <- Seats].

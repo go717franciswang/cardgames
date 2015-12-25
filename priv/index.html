@@ -94,6 +94,10 @@ function onMessage(e) {
     switch(header) {
       case 'create_table':
         handle_create_table(content);
+      case 'join_table':
+        handle_create_table(content);
+      case 'sit':
+        handle_sit(content);
       case 'list_tables':
         handle_list_tables(content);
         break;
@@ -103,6 +107,9 @@ function onMessage(e) {
   } else {
     log('unhandled reply: ' + e.data);
   }
+}
+
+function handle_sit(table) {
 }
 
 function handle_create_table(res) {
