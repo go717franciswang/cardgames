@@ -10,6 +10,8 @@
 <div id="gameSelect">
   <button id="createGame">Create game</button>
   <button id="listGames">List games</button>
+  <div id="tables">
+  </div>
 </div>
 <div id="log"></div>
 <script>
@@ -19,6 +21,7 @@ var $log = $('#log');
 var $gameSelect = $('#gameSelect');
 var $createGameBtn = $('#createGame');
 var $listGamesBtn = $('#listGames');
+var $tables = $('#tables');
 var websocket;
 
 $conServerBtn.click(function() {
@@ -33,14 +36,17 @@ $listGamesBtn.click(function() {
   websocket.send('list_tables');
 });
 
+$gameSelect.on('click', '.joinBtns', function() {
+  console.log(this);
+  websocket.send('join_table ' + this.getAttribute('data'));
+});
+
 function connect() {
   websocket = new WebSocket('ws://' + window.location.host + '/player_ws');
   websocket.onopen = function(e) { onOpen(e) };
   websocket.onclose = function(e) { onClose(e) };
   websocket.onmessage = function(e) { onMessage(e) };
   websocket.onerror = function(e) { onError(e) };
-  $conServerBtn.hide();
-  $gameSelect.show();
 };
 
 function log(msg) {
@@ -49,6 +55,8 @@ function log(msg) {
 
 function onOpen(e) {
   log('connected');
+  $conServerBtn.hide();
+  $gameSelect.show();
 }
 
 function onClose(e) {
@@ -58,7 +66,29 @@ function onClose(e) {
 }
 
 function onMessage(e) {
-  log('got message: ' + e.data);
+  var s = e.data.split('|', 2);
+  if (s.length == 2) {
+    var header = s[0];
+    var content = JSON.parse(s[1]);
+    
+    switch(header) {
+      case 'list_tables':
+        handle_list_tables(content);
+        break;
+      default:
+        log('unhandled reply: ' + e.data);
+    }
+  } else {
+    log('unhandled reply: ' + e.data);
+  }
+}
+
+function handle_list_tables(tables) {
+  $tables.empty();
+  for (var i = 0; i < tables.length; i++) {
+    var id = tables[i];
+    $tables.append('<div>'+id+' <button class="joinBtns" data="'+id+'">Join</button></div>');
+  }
 }
 
 function onError(e) {
