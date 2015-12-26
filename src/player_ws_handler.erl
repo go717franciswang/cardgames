@@ -30,7 +30,7 @@ websocket_handle({text, <<"list_tables">>}, Req, State) ->
     {reply, {text, Reply}, Req, State};
 websocket_handle({text, <<"join_table ", Id/binary>>}, Req, #state{player=Player}=State) ->
     ok = player:join_table(Player, erlang:binary_to_integer(Id)),
-    Reply = build_seats_reply_(sit, Player),
+    Reply = build_seats_reply_(join_table, Player),
     {reply, {text, Reply}, Req, State};
 websocket_handle({text, <<"sit">>}, Req, #state{player=Player}=State) ->
     ok = player:sit(Player),
@@ -38,7 +38,7 @@ websocket_handle({text, <<"sit">>}, Req, #state{player=Player}=State) ->
     {reply, {text, Reply}, Req, State};
 websocket_handle({text, <<"start_game">>}, Req, #state{player=Player}=State) ->
     ok = player:start_game(Player),
-    {reply, {text, "ok"}, Req, State};
+    {reply, {text, "start_game|{\"status\":\"ok\"}"}, Req, State};
 websocket_handle({text, <<"show_cards">>}, Req, #state{player=Player}=State) ->
     Cards = player:show_cards(Player),
     {reply, {text, jiffy:encode(hand:cards_to_strs(Cards))}, Req, State};

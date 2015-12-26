@@ -5,6 +5,7 @@
 #gameSelect { display: none }
 #table { display: none }
 #leaveBtn { display: none }
+#startBtn { display: none }
 </style>
 </head>
 <body>
@@ -18,6 +19,7 @@
 <div id="table">
   <button id="sitBtn">Sit</button>
   <button id="leaveBtn">Leave</button>
+  <button id="startBtn">Start</button>
   
   <div class="seat">_</div>
   <div class="seat">_</div>
@@ -38,7 +40,7 @@ var $listGamesBtn = $('#listGames');
 var $tables = $('#tables');
 var $sitBtn = $('#sitBtn');
 var $leaveBtn = $('#leaveBtn');
-// TODO: add start game button
+var $startBtn = $('#startBtn');
 var websocket;
 
 $conServerBtn.click(function() {
@@ -58,8 +60,11 @@ $sitBtn.click(function() {
 });
 
 $gameSelect.on('click', '.joinBtn', function() {
-  console.log(this);
   websocket.send('join_table ' + this.getAttribute('data'));
+});
+
+$startBtn.click(function() {
+  websocket.send('start_game');
 });
 
 function connect() {
@@ -84,10 +89,12 @@ function onClose(e) {
   log('closed');
   $conServerBtn.show();
   $gameSelect.hide();
-  $game.hide();
+  $table.hide();
 }
 
 function onMessage(e) {
+  console.log('got message: ', e.data);
+
   var s = e.data.split('|', 2);
   if (s.length == 2) {
     var header = s[0];
@@ -96,11 +103,14 @@ function onMessage(e) {
     switch(header) {
       case 'create_table':
         handle_create_table(content);
+        break;
       case 'join_table':
         handle_create_table(content);
         update_seats(content);
+        break;
       case 'sit':
-        update_seats(content);
+        handle_sit(content);
+        break;
       case 'list_tables':
         handle_list_tables(content);
         break;
@@ -110,6 +120,13 @@ function onMessage(e) {
   } else {
     log('unhandled reply: ' + e.data);
   }
+}
+
+function handle_sit(res) {
+  update_seats(res);
+  $sitBtn.hide();
+  $leaveBtn.show();
+  $startBtn.show();
 }
 
 function update_seats(res) {
@@ -128,7 +145,7 @@ function update_seats(res) {
 }
 
 function handle_create_table(res) {
-  if (res['status'] = 'ok') {
+  if (res['status'] == 'ok') {
     $gameSelect.hide();
     $table.show();
   }
