@@ -114,12 +114,19 @@ function onMessage(e) {
       case 'list_tables':
         handle_list_tables(content);
         break;
+      case 'game_started':
+        handle_game_started(content);
+        break;
       default:
         log('unhandled reply: ' + e.data);
     }
   } else {
     log('unhandled reply: ' + e.data);
   }
+}
+
+function handle_game_started(res) {
+  $startBtn.hide();
 }
 
 function handle_sit(res) {
