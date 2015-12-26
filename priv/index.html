@@ -117,6 +117,9 @@ function onMessage(e) {
       case 'game_started':
         handle_game_started(content);
         break;
+      case 'update_seats':
+        update_seats(content);
+        break;
       default:
         log('unhandled reply: ' + e.data);
     }

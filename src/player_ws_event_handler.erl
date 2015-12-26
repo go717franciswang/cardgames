@@ -14,6 +14,8 @@
 init([WS]) ->
     {ok, #state{ws=WS}}.
 
+handle_event({new_player, _}, State) ->
+    State#state.ws ! {reply, update_seats};
 handle_event(game_started, State) ->
     State#state.ws ! {reply, "game_started|{\"status\":\"ok\"}"};
 handle_event(Event, State) ->
