@@ -62,6 +62,9 @@ websocket_handle(_Frame, Req, State) ->
 websocket_info({reply, update_seats}, Req, State) ->
     Reply = build_seats_reply_(update_seats, State#state.player),
     {reply, {text, Reply}, Req, State};
+websocket_info({reply, {signal_turn, Options}}, Req, State) ->
+    Reply = build_reply_(signal_turn, jiffy:encode(Options)),
+    {reply, {text, Reply}, Req, State};
 websocket_info({reply, Reply}, Req, State) ->
     {reply, {text, Reply}, Req, State};
 websocket_info(_Info, Req, State) ->
