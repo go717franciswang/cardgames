@@ -2,7 +2,7 @@
 -behaviour(gen_fsm).
 
 %% API.
--export([start_link/0, create_table/1, join_table/2, start_game/1, show_cards/1, 
+-export([start_link/1, create_table/1, join_table/2, start_game/1, show_cards/1, 
         take_turn/2, sit/1, leave/1, add_event_handler/3, notify/2, show_seats/1]).
 
 %% gen_fsm.
@@ -14,14 +14,14 @@
 -export([terminate/3]).
 -export([code_change/4]).
 
--record(state, {game, em
+-record(state, {game, em, nickname
 }).
 
 %% API.
 
--spec start_link() -> {ok, pid()}.
-start_link() ->
-	gen_fsm:start_link(?MODULE, [], []).
+-spec start_link(atom()|binary()) -> {ok, pid()}.
+start_link(NickName) ->
+	gen_fsm:start_link(?MODULE, [NickName], []).
 
 create_table(Pid) -> gen_fsm:sync_send_event(Pid, create_table).
 join_table(Pid, TableId) -> gen_fsm:sync_send_event(Pid, {join_table, TableId}).
@@ -37,9 +37,9 @@ show_seats(Pid) -> gen_fsm:sync_send_event(Pid, show_seats).
 
 %% gen_fsm.
 
-init([]) ->
+init([NickName]) ->
     {ok, EM} = gen_event:start_link(),
-	{ok, lobby, #state{em=EM}}.
+	{ok, lobby, #state{em=EM, nickname=NickName}}.
 
 lobby(create_table, _From, StateData) ->
     {ok, Pid} = tables_sup:create_table(),

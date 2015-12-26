@@ -1,25 +1,19 @@
 -module(player_ws_handler).
--behaviour(cowboy_websocket_handler).
 
--export([init/3]).
--export([websocket_init/3]).
+-export([init/2]).
 -export([websocket_handle/3]).
 -export([websocket_info/3]).
--export([websocket_terminate/3]).
 
 -record(state, { player
 }).
 -include("records.hrl").
 
-init(_, _, _) ->
-	{upgrade, protocol, cowboy_websocket}.
-
-websocket_init(_, Req, _Opts) ->
+init(Req, _Opts) ->
     io:format("Player connected~n"),
-    {ok, Player} = players_sup:create_player(),
+    #{nickname := NickName} = cowboy_req:match_qs([nickname], Req),
+    {ok, Player} = players_sup:create_player(NickName),
     player:add_event_handler(Player, player_ws_event_handler, [self()]),
-	NewReq = cowboy_req:compact(Req),
-    {ok, NewReq, #state{player=Player}}.
+    {cowboy_websocket, Req, #state{player=Player}}.
 
 websocket_handle({text, <<"create_table">>}, Req, #state{player=Player}=State) ->
     {ok, _Table} = player:create_table(Player),
@@ -69,9 +63,6 @@ websocket_info({reply, Reply}, Req, State) ->
     {reply, {text, Reply}, Req, State};
 websocket_info(_Info, Req, State) ->
 	{ok, Req, State}.
-
-websocket_terminate(_Reason, _Req, _State) ->
-	ok.
 
 build_reply_(Header, Content) ->
     HeaderBinary = erlang:atom_to_binary(Header, utf8),

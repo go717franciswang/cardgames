@@ -12,10 +12,10 @@ init_per_testcase(testPlayerLeaveDuringWait, Config) -> Config;
 init_per_testcase(_TestName, Config) ->
     {ok, GamesSup} = cardgames_sup:start_link(),
 
-    {ok, Player1} = players_sup:create_player(),
-    {ok, Player2} = players_sup:create_player(),
-    {ok, Player3} = players_sup:create_player(),
-    {ok, Player4} = players_sup:create_player(),
+    {ok, Player1} = players_sup:create_player(p),
+    {ok, Player2} = players_sup:create_player(p),
+    {ok, Player3} = players_sup:create_player(p),
+    {ok, Player4} = players_sup:create_player(p),
     {ok, Table} = player:create_table(Player1),
     [TableId] = tables_sup:list_tables(),
     ok = player:join_table(Player2, TableId),
@@ -137,10 +137,10 @@ testPlayerLeaveDuringGameDuringTurn(Config) ->
 testPlayerLeaveDuringWait(Config) ->
     {ok, GamesSup} = cardgames_sup:start_link(),
 
-    {ok, Player1} = players_sup:create_player(),
-    {ok, Player2} = players_sup:create_player(),
-    {ok, Player3} = players_sup:create_player(),
-    {ok, Player4} = players_sup:create_player(),
+    {ok, Player1} = players_sup:create_player(p),
+    {ok, Player2} = players_sup:create_player(p),
+    {ok, Player3} = players_sup:create_player(p),
+    {ok, Player4} = players_sup:create_player(p),
     {ok, Table} = player:create_table(Player1),
     [TableId] = tables_sup:list_tables(),
     ok = player:join_table(Player2, TableId),

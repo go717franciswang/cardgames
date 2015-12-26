@@ -82,7 +82,8 @@ $options.on('click', '.actionBtn', function() {
 });
 
 function connect() {
-  websocket = new WebSocket('ws://' + window.location.host + '/player_ws');
+  var nn = $nickName.val();
+  websocket = new WebSocket('ws://' + window.location.host + '/player_ws?nickname=' + encodeURIComponent(nn));
   websocket.onopen = function(e) { onOpen(e) };
   websocket.onclose = function(e) { onClose(e) };
   websocket.onmessage = function(e) { onMessage(e) };
