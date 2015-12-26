@@ -44,8 +44,8 @@ websocket_handle({text, <<"show_cards">>}, Req, #state{player=Player}=State) ->
     {reply, {text, jiffy:encode(hand:cards_to_strs(Cards))}, Req, State};
 websocket_handle({text, <<"take_turn ", Action/binary>>}, Req, #state{player=Player}=State) ->
     Reply = case player:take_turn(Player, erlang:binary_to_existing_atom(Action, utf8)) of
-        ok -> "ok";
-        {error, E} -> jiffy:encode({[{error,E}]})
+        ok -> "take_turn|{\"status\":\"ok\"}";
+        {error, E} -> build_reply_(take_turn, jiffy:encode(#{error => E}))
     end,
     {reply, {text, Reply}, Req, State};
 websocket_handle({text, <<"leave">>}, Req, #state{player=Player}=State) ->
