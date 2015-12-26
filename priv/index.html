@@ -9,7 +9,10 @@
 </style>
 </head>
 <body>
-<button id="conServer">Connect to server</button>
+<div id="conPanel">
+  Nick name: <input type="text" id="nickname">
+  <button id="conServer">Connect to server</button>
+</div>
 <div id="gameSelect">
   <button id="createGame">Create game</button>
   <button id="listGames">List games</button>
@@ -34,6 +37,8 @@
 <div id="log"></div>
 <script>
 
+var $conPanel = $('#conPanel');
+var $nickName = $('#nickname');
 var $conServerBtn = $('#conServer');
 var $log = $('#log');
 var $gameSelect = $('#gameSelect');
@@ -90,13 +95,13 @@ function log(msg) {
 
 function onOpen(e) {
   log('connected');
-  $conServerBtn.hide();
+  $conPanel.hide();
   $gameSelect.show();
 }
 
 function onClose(e) {
   log('closed');
-  $conServerBtn.show();
+  $conPanel.show();
   $gameSelect.hide();
   $table.hide();
 }
