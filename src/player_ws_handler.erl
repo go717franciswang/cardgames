@@ -24,11 +24,11 @@ websocket_handle({text, <<"list_tables">>}, Req, State) ->
     {reply, {text, Reply}, Req, State};
 websocket_handle({text, <<"join_table ", Id/binary>>}, Req, #state{player=Player}=State) ->
     ok = player:join_table(Player, erlang:binary_to_integer(Id)),
-    Reply = build_seats_reply_(join_table, Player),
+    Reply = build_game_state_reply_(join_table, Player),
     {reply, {text, Reply}, Req, State};
 websocket_handle({text, <<"sit">>}, Req, #state{player=Player}=State) ->
     ok = player:sit(Player),
-    Reply = build_seats_reply_(sit, Player),
+    Reply = build_game_state_reply_(sit, Player),
     {reply, {text, Reply}, Req, State};
 websocket_handle({text, <<"start_game">>}, Req, #state{player=Player}=State) ->
     ok = player:start_game(Player),
@@ -54,7 +54,7 @@ websocket_handle(_Frame, Req, State) ->
 	{ok, Req, State}.
 
 websocket_info({reply, update_seats}, Req, State) ->
-    Reply = build_seats_reply_(update_seats, State#state.player),
+    Reply = build_game_state_reply_(update_seats, State#state.player),
     {reply, {text, Reply}, Req, State};
 websocket_info({reply, {signal_turn, Options}}, Req, State) ->
     Reply = build_reply_(signal_turn, jiffy:encode(Options)),
@@ -69,13 +69,8 @@ build_reply_(Header, Content) ->
     Sep = <<"|">>,
     <<HeaderBinary/binary, Sep/binary, Content/binary>>.
 
-build_seats_reply_(Header, Player) ->
-    Seats = player:show_seats(Player),
-    Bin = jiffy:encode(#{status=>ok, seats=>seats_to_maps_(Seats)}),
+build_game_state_reply_(Header, Player) ->
+    GameState = player:show_game_state(Player),
+    Bin = jiffy:encode(#{status=>ok, game=>util:game_state_to_serializable(GameState)}),
     build_reply_(Header, Bin).
 
-seat_to_map_(#seat{position=Pos, player=undefined}) ->
-    #{position=>Pos};
-seat_to_map_(#seat{position=Pos, player=Player, money=Money, bet=Bet}) ->
-    #{position=>Pos, player=>pid_to_list(Player), money=>Money, bet=>Bet}.
-seats_to_maps_(Seats) -> [seat_to_map_(S) || S <- Seats].

@@ -4,7 +4,7 @@
 %% API.
 -export([start_link/0]).
 -export([join/2, sit/2, start_game/1, get_seats/1, take_turn/2, show_cards/2,
-         leave/2, set_timeout/2, show_seats/1]).
+         leave/2, set_timeout/2, show_game_state/1]).
 
 %% gen_fsm.
 -export([init/1]).
@@ -34,7 +34,7 @@ get_seats(Pid) -> gen_fsm:sync_send_all_state_event(Pid, get_seats).
 take_turn(Pid, Action) -> gen_fsm:sync_send_event(Pid, {take_turn, Action}).
 show_cards(Pid, Player) -> gen_fsm:sync_send_event(Pid, {show_cards, Player}).
 set_timeout(Pid, Timeout) -> gen_fsm:sync_send_all_state_event(Pid, {set_timeout, Timeout}).
-show_seats(Pid) -> gen_fsm:sync_send_all_state_event(Pid, show_seats).
+show_game_state(Pid) -> gen_fsm:sync_send_all_state_event(Pid, show_game_state).
 
 %% gen_fsm.
 
@@ -105,8 +105,14 @@ handle_sync_event({leave, Player}, _From, StateName, #state{seats=Seats,users=Us
     {reply, ok, StateName, StateData#state{users=NewUsers}};
 handle_sync_event(get_seats, _From, StateName, StateData) ->
     {reply, StateData#state.seats, StateName, StateData};
-handle_sync_event(show_seats, _From, StateName, StateData) ->
-    {reply, seats:show_seats(StateData#state.seats), StateName, StateData};
+handle_sync_event(show_game_state, {Player, _Tag}, StateName, #state{seats=Seats,community_cards=CC}=StateData) ->
+    Dealer = seats:get_dealer(Seats),
+    Reply = #game_state{
+        seats=seats:show_seats(Seats, Player),
+        pots=seats:get_pots(Seats),
+        community_cards=CC,
+        dealer_button_pos=Dealer#seat.position},
+    {reply, Reply, StateName, StateData};
 handle_sync_event({set_timeout, Timeout}, _From, StateName, StateData) ->
     {reply, ok, StateName, StateData#state{timeout=Timeout}};
 handle_sync_event(_Event, _From, StateName, StateData) ->

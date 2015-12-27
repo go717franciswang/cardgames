@@ -3,7 +3,7 @@
 
 %% API.
 -export([start_link/1]).
--export([join/2, show_players/1, show_seats/1, show_active_seats/1, get_dealer/1, 
+-export([join/2, show_players/1, show_seats/1, show_seats/2, show_active_seats/1, get_dealer/1, 
         rotate_dealer_button/1, get_blinds/1, get_preflop_actor/1, 
         get_flop_actor/1, place_bet/3, deal_card/3, get_next_seat/2,
         handle_action/3, is_betting_complete/1, clear_last_action/1,
@@ -33,6 +33,7 @@ start_link(SeatCount) ->
 join(Pid, Player) -> gen_server:call(Pid, {join, Player}).
 show_players(Pid) -> gen_server:call(Pid, show_players).
 show_seats(Pid) -> gen_server:call(Pid, show_seats).
+show_seats(Pid, Player) -> gen_server:call(Pid, {show_seats, Player}).
 show_active_seats(Pid) -> gen_server:call(Pid, show_active_seats).
 get_dealer(Pid) -> gen_server:call(Pid, get_dealer).
 rotate_dealer_button(Pid) -> gen_server:call(Pid, rotate_dealer_button).
@@ -70,6 +71,13 @@ handle_call(show_active_seats, _From, State) ->
     {reply, get_active_seats_(State), State};
 handle_call(show_seats, _From, State) ->
     {reply, State#state.seats, State};
+handle_call({show_seats, Player}, _From, State) ->
+    Reply = lists:map(
+        fun(#seat{player=undefined}=Seat) -> Seat;
+           (#seat{player=P}=Seat) when P == Player -> Seat;
+           (#seat{cards=Cs}=Seat) -> Seat#seat{cards=[unknown || _C <- Cs]}
+        end, State#state.seats),
+    {reply, Reply, State};
 handle_call({join, Player}, _From, State) ->
     Seats = State#state.seats,
     EmptySeat = get_empty_seat_(State),
