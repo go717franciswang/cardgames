@@ -45,6 +45,7 @@ init([NickName]) ->
 lobby(create_table, _From, StateData) ->
     {ok, Pid} = tables_sup:create_table(),
     holdem:join(Pid, self()),
+    holdem:register_nickname(Pid, self(), StateData#state.nickname),
 	{reply, {ok, Pid}, in_game, StateData#state{game=Pid}};
 lobby({join_table, TableId}, _From, StateData) ->
     Pid = tables_sup:id_to_pid(TableId),
