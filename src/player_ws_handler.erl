@@ -53,8 +53,8 @@ websocket_handle({binary, Data}, Req, State) ->
 websocket_handle(_Frame, Req, State) ->
 	{ok, Req, State}.
 
-websocket_info({reply, update_seats}, Req, State) ->
-    Reply = build_game_state_reply_(update_seats, State#state.player),
+websocket_info({reply, update_game}, Req, State) ->
+    Reply = build_game_state_reply_(update_game, State#state.player),
     {reply, {text, Reply}, Req, State};
 websocket_info({reply, {signal_turn, Options}}, Req, State) ->
     Reply = build_reply_(signal_turn, jiffy:encode(Options)),

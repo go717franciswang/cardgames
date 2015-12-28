@@ -31,6 +31,11 @@
   <div class="seat">_</div>
   <div class="seat">_</div>
 
+  <div id="pots">
+  </div>
+  <div id="communityCards">
+  </div>
+
   <div id="options">
   </div>
 </div>
@@ -43,6 +48,8 @@ var $conServerBtn = $('#conServer');
 var $log = $('#log');
 var $gameSelect = $('#gameSelect');
 var $table = $('#table');
+var $pots = $('#pots');
+var $communityCards = $('#communityCards');
 var $createGameBtn = $('#createGame');
 var $listGamesBtn = $('#listGames');
 var $tables = $('#tables');
@@ -121,7 +128,7 @@ function onMessage(e) {
         break;
       case 'join_table':
         handle_create_table(content);
-        update_seats(content);
+        update_game(content);
         break;
       case 'sit':
         handle_sit(content);
@@ -132,8 +139,8 @@ function onMessage(e) {
       case 'game_started':
         handle_game_started(content);
         break;
-      case 'update_seats':
-        update_seats(content);
+      case 'update_game':
+        update_game(content);
         break;
       case 'signal_turn':
         handle_signal_turn(content);
@@ -169,25 +176,40 @@ function handle_game_started(res) {
 }
 
 function handle_sit(res) {
-  update_seats(res);
+  update_game(res);
   $sitBtn.hide();
   $leaveBtn.show();
   $startBtn.show();
 }
 
-//TODO: return entire public game state to make life easier
-function update_seats(res) {
+function update_game(res) {
   if (res['status'] != 'ok') return;
 
-  var seats = res['seats'];
+  var game = res['game'];
+  var seats = game['seats'];
   for (var i = 0; i < seats.length; i++) {
     var seat = seats[i];
     var $seat = $('.seat:nth('+i+')');
     if (seat['player']) {
       $seat.html('<span>Money: '+seat['money']+'</span>, <span>Bet:'+seat['bet']+'</span>');
+      //TODO show player cards
     } else {
       $seat.html('_');
     }
+  }
+
+  var pots = game['pots'];
+  $pots.empty();
+  for (var i = 0; i < pots.length; i++) {
+    var pot = pots[i];
+    $pots.append('<div>Pot: '+pot['money']+'</div>');
+  }
+
+  var cc = game['community_cards'];
+  $communityCards.empty();
+  for (var i = 0; i < cc.length; i++) {
+    var c = cc[i];
+    $communityCards.append('<div>'+c['rank']+' '+c['suit']+'</div>');
   }
 }
 

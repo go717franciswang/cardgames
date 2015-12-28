@@ -15,7 +15,7 @@ init([WS]) ->
     {ok, #state{ws=WS}}.
 
 handle_event({new_player, _}, State) ->
-    State#state.ws ! {reply, update_seats},
+    State#state.ws ! {reply, update_game},
     {ok, State};
 handle_event(game_started, State) ->
     State#state.ws ! {reply, "game_started|{\"status\":\"ok\"}"},
@@ -25,6 +25,7 @@ handle_event({signal_turn, Options}, State) ->
     {ok, State};
 handle_event(Event, State) ->
     io:format("Got notification: ~p~n", [Event]),
+    State#state.ws ! {reply, update_game},
     State#state.ws ! {reply, io_lib:format("~p", [Event])},
     {ok, State}.
 
