@@ -1,6 +1,7 @@
 <html>
 <head>
 <script src="/static/jquery-2.1.4.min.js"></script>
+<script src="/static/d3.min.js"></script>
 <style>
 #gameSelect { display: none }
 #table { display: none }
@@ -23,6 +24,8 @@
   <button id="sitBtn">Sit</button>
   <button id="leaveBtn">Leave</button>
   <button id="startBtn">Start</button>
+
+  <div id="container"></div>
   
   <div class="seat">_</div>
   <div class="seat">_</div>
@@ -40,6 +43,7 @@
   </div>
 </div>
 <div id="log"></div>
+<script src="/static/game-d3.js"></script>
 <script>
 
 var $conPanel = $('#conPanel');
@@ -213,6 +217,8 @@ function update_game(res) {
     var c = cc[i];
     $communityCards.append(card_to_html(c));
   }
+
+  draw(res['game']);
 }
 
 function card_to_html(c) {
