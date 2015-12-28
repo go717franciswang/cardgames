@@ -4,7 +4,7 @@
 %% API.
 -export([start_link/0]).
 -export([join/2, sit/2, start_game/1, get_seats/1, take_turn/2, show_cards/2,
-         leave/2, set_timeout/2, show_game_state/1]).
+         leave/2, set_timeout/2, show_game_state/1, register_nickname/3]).
 
 %% gen_fsm.
 -export([init/1]).
@@ -35,6 +35,8 @@ take_turn(Pid, Action) -> gen_fsm:sync_send_event(Pid, {take_turn, Action}).
 show_cards(Pid, Player) -> gen_fsm:sync_send_event(Pid, {show_cards, Player}).
 set_timeout(Pid, Timeout) -> gen_fsm:sync_send_all_state_event(Pid, {set_timeout, Timeout}).
 show_game_state(Pid) -> gen_fsm:sync_send_all_state_event(Pid, show_game_state).
+register_nickname(Pid, Player, NickName) -> 
+    gen_fsm:send_all_state_event(Pid, {register_nickname, Player, NickName}).
 
 %% gen_fsm.
 
@@ -88,11 +90,17 @@ game_in_progess({timeout, _Ref, Action}, State) ->
     {_Reply, NewStateName, NewState} = handle_action_(State, Action),
     {next_state, NewStateName, NewState}.
 
+handle_event({register_nickname, Player, NickName}, StateName, #state{users=Users}=StateData) ->
+    NewUsers = case lists:keyfind(Player, #user.player, Users) of
+        false -> Users;
+        User -> lists:keystore(Player, #user.player, Users, User#user{nickname=NickName})
+    end,
+    {next_state, StateName, StateData#state{users=NewUsers}};
 handle_event(_Event, StateName, StateData) ->
 	{next_state, StateName, StateData}.
 
 handle_sync_event({join, Player}, _From, StateName, StateData) ->
-    Users = [Player|StateData#state.users],
+    Users = [#user{player=Player}|StateData#state.users],
     broadcast_(StateData, {join, Player}),
     {reply, ok, StateName, StateData#state{users=Users}};
 handle_sync_event({leave, Player}, _From, StateName, #state{seats=Seats,users=Users}=StateData) ->
@@ -100,18 +108,20 @@ handle_sync_event({leave, Player}, _From, StateName, #state{seats=Seats,users=Us
         ok -> io:format("Player ~p dropped out~n", [Player]);
         {error, no_such_player} -> ok
     end,
-    NewUsers = lists:delete(Player, Users),
+    NewUsers = lists:keydelete(Player, #user.player, Users),
     broadcast_(StateData, {leave, Player}),
     {reply, ok, StateName, StateData#state{users=NewUsers}};
 handle_sync_event(get_seats, _From, StateName, StateData) ->
     {reply, StateData#state.seats, StateName, StateData};
-handle_sync_event(show_game_state, {Player, _Tag}, StateName, #state{seats=Seats,community_cards=CC}=StateData) ->
+handle_sync_event(show_game_state, {Player, _Tag}, StateName, 
+        #state{seats=Seats,community_cards=CC,users=Users}=StateData) ->
     Dealer = seats:get_dealer(Seats),
     Reply = #game_state{
         seats=seats:show_seats(Seats, Player),
         pots=seats:get_pots(Seats),
         community_cards=CC,
-        dealer_button_pos=Dealer#seat.position},
+        dealer_button_pos=Dealer#seat.position,
+        users=Users},
     {reply, Reply, StateName, StateData};
 handle_sync_event({set_timeout, Timeout}, _From, StateName, StateData) ->
     {reply, ok, StateName, StateData#state{timeout=Timeout}};
@@ -227,4 +237,4 @@ get_timeout_action_(Options) ->
     end.
 
 broadcast_(#state{users=Users}, Event) ->
-    lists:foreach(fun(User) -> player:notify(User, Event) end, Users).
+    lists:foreach(fun(#user{player=Player}) -> player:notify(Player, Event) end, Users).

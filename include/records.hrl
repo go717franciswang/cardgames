@@ -1,5 +1,7 @@
 -record(card, {suit, rank}).
 
+-record(user, {player, nickname}).
+
 % position: 1|2|3|...
 % player: player_pid or player_id
 % money: amount of money a player have on the table
@@ -29,4 +31,4 @@
 -record(play, {player, hand, cards}).
 
 -record(game_state, {seats=[], pots=[], community_cards=[], 
-        dealer_button_pos}).
+        dealer_button_pos, users=[]}).
