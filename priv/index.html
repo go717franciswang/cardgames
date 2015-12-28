@@ -192,7 +192,9 @@ function update_game(res) {
     var $seat = $('.seat:nth('+i+')');
     if (seat['player']) {
       $seat.html('<span>Money: '+seat['money']+'</span>, <span>Bet:'+seat['bet']+'</span>');
-      //TODO show player cards
+      for (var j = 0; j < seat['cards'].length; j++) {
+        $seat.append(card_to_html(seat['cards'][j]));
+      }
     } else {
       $seat.html('_');
     }
@@ -209,7 +211,15 @@ function update_game(res) {
   $communityCards.empty();
   for (var i = 0; i < cc.length; i++) {
     var c = cc[i];
-    $communityCards.append('<div>'+c['rank']+' '+c['suit']+'</div>');
+    $communityCards.append(card_to_html(c));
+  }
+}
+
+function card_to_html(c) {
+  if (c == 'unknown') {
+    return '<span>unknown</span>';
+  } else {
+    return '<span>'+c['rank']+' '+c['suit']+'</span>';
   }
 }
 
