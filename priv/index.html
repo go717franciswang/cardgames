@@ -156,12 +156,35 @@ function onMessage(e) {
       case 'timeout':
         handle_timeout(content);
         break;
+      case 'pot_wins':
+        handle_pot_wins(content);
+        break;
       default:
         console.error('unhandled reply: ' + e.data);
     }
   } else {
     console.error('unhandled reply: ' + e.data);
   }
+}
+
+function handle_pot_wins(res) {
+  res.forEach(function(pot_wins) {
+    var winningPlays = [];
+    pot_wins['wins'].forEach(function(win) {
+      var nickname = getNickName(win['player']);
+      if (win['hand']) {
+        winningPlays.push(nickname + "'s " + win['hand'] + '(' + cards2str(win['cards']) + ')');
+      } else {
+        winningPlays.push(nickname);
+      }
+    });
+
+    if (winningPlays.length > 1) {
+      log('Pot of '+pot_wins['pot']['money']+' was split by '+ winningPlays.join(', ') + '.');
+    } else {
+      log('Pot of '+pot_wins['pot']['money']+' was won by '+ winningPlays[0] + '.');
+    }
+  });
 }
 
 function handle_new_player(res) {

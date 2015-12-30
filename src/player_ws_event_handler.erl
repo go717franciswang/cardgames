@@ -40,6 +40,10 @@ handle_event({take_turn, Player, Action}, State) ->
     Content = jiffy:encode(#{player=>util:pid_to_serializable(Player), action=>Action}),
     State#state.ws ! {reply, ws_util:build_reply(take_turn, Content)},
     {ok, State};
+handle_event({pot_wins, PotWins}, State) ->
+    Content = jiffy:encode([util:pot_wins_to_serializable(PW) || PW <- PotWins]),
+    State#state.ws ! {reply, ws_util:build_reply(pot_wins, Content)},
+    {ok, State};
 handle_event(Event, State) ->
     io:format("Got notification: ~p~n", [Event]),
     State#state.ws ! {reply, update_game},
