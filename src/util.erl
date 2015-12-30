@@ -3,7 +3,8 @@
         game_state_to_serializable/1, 
         seat_to_serializable/1,
         pot_to_serializable/1,
-        pid_to_serializable/1
+        pid_to_serializable/1,
+        pot_wins_to_serializable/1
     ]).
 -include("records.hrl").
 
@@ -34,3 +35,17 @@ pot_to_serializable(#pot{money=M, eligible_ids=ES}) ->
 
 user_to_serializable(#user{player=P, nickname=N}) ->
     #{player => pid_to_serializable(P), nickname => N}.
+
+hand_to_serializable(#hand{name=N}) -> N.
+
+play_to_serializable(#play{player=P, hand=undefined}) ->
+    #{player => pid_to_serializable(P)};
+play_to_serializable(#play{player=P, hand=H, cards=CS}) ->
+    #{player => pid_to_serializable(P),
+        hand => hand_to_serializable(H),
+        cards => [card_to_serializable(C) || C <- CS]}.
+
+pot_wins_to_serializable(#pot_wins{pot=P, wins=WS}) ->
+    #{pot => pot_to_serializable(P),
+        wins => [play_to_serializable(W) || W <- WS]}.
+

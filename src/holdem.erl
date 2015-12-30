@@ -202,26 +202,16 @@ show_down_(#state{community_cards=CC,seats=Seats}=State) ->
         end, Competitors),
     seats:pot_bets(Seats),
     PotWins = seats:show_down(Seats, CC),
-    lists:foreach(
-        fun(#pot_wins{pot=Pot,wins=Plays}) ->
-                io:format("pot: ~p~n", [Pot]),
-                io:format("winning plays: ~p~n~n", [Plays]),
-                broadcast_(State, {pot, Pot}),
-                broadcast_(State, {winning_plays, Plays})
-        end, PotWins),
+    io:format("pot wins: ~p~n", [PotWins]),
+    broadcast_(State, {pot_wins, PotWins}),
     game_end_routine_(State),
     State#state{community_cards=[],deck=undefined,stage=show_down,actor=undefined,actor_options=[]}.
 
 hand_over_(#state{seats=Seats}=State) ->
     seats:pot_bets(Seats),
     PotWins = seats:hand_over(Seats),
-    lists:foreach(
-        fun(#pot_wins{pot=Pot,wins=Plays}) ->
-                io:format("pot: ~p~n", [Pot]),
-                io:format("winning plays: ~p~n~n", [Plays]),
-                broadcast_(State, {pot, Pot}),
-                broadcast_(State, {winning_plays, Plays})
-        end, PotWins),
+    io:format("pot wins: ~p~n", [PotWins]),
+    broadcast_(State, {pot_wins, PotWins}),
     game_end_routine_(State),
     State#state{community_cards=[],deck=undefined,stage=hand_over,actor=undefined,actor_options=[]}.
 
