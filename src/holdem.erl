@@ -90,6 +90,7 @@ game_in_progess({show_cards, Player}, _From, StateData) ->
 game_in_progess({timeout, _Ref, Action}, State) ->
     io:format("last player did not take action in time~n"),
     Player = State#state.actor#seat.player,
+    player:notify(Player, timeout),
     broadcast_(State, {timeout, Player}),
     {_Reply, NewStateName, NewState} = handle_action_(State, Action),
     {next_state, NewStateName, NewState}.

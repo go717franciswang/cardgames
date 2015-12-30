@@ -149,6 +149,9 @@ function onMessage(e) {
       case 'take_turn':
         handle_take_turn(content);
         break;
+      case 'timeout':
+        handle_timeout(content);
+        break;
       default:
         console.error('unhandled reply: ' + e.data);
     }
@@ -192,6 +195,11 @@ function handle_take_turn(res) {
   } else {
     $options.empty();
   }
+}
+
+function handle_timeout(_res) {
+  log('You did not act in time.');
+  $options.empty();
 }
 
 function handle_signal_turn(options) {
