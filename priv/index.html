@@ -159,12 +159,20 @@ function onMessage(e) {
       case 'pot_wins':
         handle_pot_wins(content);
         break;
+      case 'reveal_cards':
+        handle_reveal_cards(content);
+        break;
       default:
         console.error('unhandled reply: ' + e.data);
     }
   } else {
     console.error('unhandled reply: ' + e.data);
   }
+}
+
+function handle_reveal_cards(res) {
+  var nickname = getNickName(res['player']);
+  log(nickname + ' had ' + cards2str(res['cards']) + '.');
 }
 
 function handle_pot_wins(res) {
