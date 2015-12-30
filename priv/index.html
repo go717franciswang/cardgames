@@ -121,6 +121,12 @@ function onMessage(e) {
       case 'join':
         handle_join(content);
         break;
+      case 'new_player':
+        handle_new_player(content);
+        break;
+      case 'start_game':
+        handle_start_game(content);
+        break;
       case 'join_table':
         handle_create_table(content);
         update_game(content);
@@ -144,22 +150,40 @@ function onMessage(e) {
         handle_take_turn(content);
         break;
       default:
-        log('unhandled reply: ' + e.data);
+        console.error('unhandled reply: ' + e.data);
     }
   } else {
-    log('unhandled reply: ' + e.data);
+    console.error('unhandled reply: ' + e.data);
+  }
+}
+
+function handle_new_player(res) {
+  var player = res['player'];
+  log(getNickName(player) + ' has sat at the table.');
+}
+
+function handle_start_game(res) {
+  if (res['status'] == 'ok') return;
+  else if (res['error'] == 'not_enough_players') {
+    log('Must have at least 2 players to start a game');
+  } else {
+    console.error(res);
   }
 }
 
 function handle_join(res) {
   var player = res['player'];
+  log(getNickName(player) + ' has joined the game.');
+}
+
+function getNickName(player) {
   var player2nickname = {};
   for (var i = 0; i < gameState['users'].length; i++) {
       var user = gameState['users'][i];
       player2nickname[user['player']] = user['nickname'];
   }
-  var nickname = player2nickname[player];
-  log(nickname + ' has joined the game.');
+
+  return player2nickname[player];
 }
 
 function handle_take_turn(res) {

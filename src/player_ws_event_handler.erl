@@ -25,6 +25,14 @@ handle_event({join, Player}, State) ->
     Content = jiffy:encode(#{player => util:pid_to_serializable(Player)}),
     State#state.ws ! {reply, ws_util:build_reply(join, Content)},
     {ok, State};
+handle_event({new_player, Player}, State) ->
+    State#state.ws ! {reply, update_game},
+    Content = jiffy:encode(#{player => util:pid_to_serializable(Player)}),
+    State#state.ws ! {reply, ws_util:build_reply(new_player, Content)},
+    {ok, State};
+handle_event({deal_card, _Card}, State) ->
+    State#state.ws ! {reply, update_game},
+    {ok, State};
 handle_event(Event, State) ->
     io:format("Got notification: ~p~n", [Event]),
     State#state.ws ! {reply, update_game},
