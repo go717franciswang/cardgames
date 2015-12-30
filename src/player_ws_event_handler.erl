@@ -20,6 +20,11 @@ handle_event(game_started, State) ->
 handle_event({signal_turn, Options}, State) ->
     State#state.ws ! {reply, {signal_turn, Options}},
     {ok, State};
+handle_event({join, Player}, State) ->
+    State#state.ws ! {reply, update_game},
+    Content = jiffy:encode(#{player => util:pid_to_serializable(Player)}),
+    State#state.ws ! {reply, ws_util:build_reply(join, Content)},
+    {ok, State};
 handle_event(Event, State) ->
     io:format("Got notification: ~p~n", [Event]),
     State#state.ws ! {reply, update_game},

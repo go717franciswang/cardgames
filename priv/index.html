@@ -50,6 +50,7 @@ var $startBtn = $('#startBtn');
 var $options = $('#options');
 
 var websocket;
+var gameState;
 
 $conServerBtn.click(function() {
   connect();
@@ -93,13 +94,13 @@ function log(msg) {
 };
 
 function onOpen(e) {
-  log('connected');
+  log('You are connected.');
   $conPanel.hide();
   $gameSelect.show();
 }
 
 function onClose(e) {
-  log('closed');
+  log('You lost connection.');
   $conPanel.show();
   $gameSelect.hide();
   $table.hide();
@@ -116,6 +117,9 @@ function onMessage(e) {
     switch(header) {
       case 'create_table':
         handle_create_table(content);
+        break;
+      case 'join':
+        handle_join(content);
         break;
       case 'join_table':
         handle_create_table(content);
@@ -147,6 +151,17 @@ function onMessage(e) {
   }
 }
 
+function handle_join(res) {
+  var player = res['player'];
+  var player2nickname = {};
+  for (var i = 0; i < gameState['users'].length; i++) {
+      var user = gameState['users'][i];
+      player2nickname[user['player']] = user['nickname'];
+  }
+  var nickname = player2nickname[player];
+  log(nickname + ' has joined the game.');
+}
+
 function handle_take_turn(res) {
   if (res['error']) {
     log('error: ' + res['error']);
@@ -175,36 +190,7 @@ function handle_sit(res) {
 
 function update_game(res) {
   if (res['status'] != 'ok') return;
-
-  var game = res['game'];
-  var seats = game['seats'];
-  for (var i = 0; i < seats.length; i++) {
-    var seat = seats[i];
-    var $seat = $('.seat:nth('+i+')');
-    if (seat['player']) {
-      $seat.html('<span>Money: '+seat['money']+'</span>, <span>Bet:'+seat['bet']+'</span>');
-      for (var j = 0; j < seat['cards'].length; j++) {
-        $seat.append(card_to_html(seat['cards'][j]));
-      }
-    } else {
-      $seat.html('_');
-    }
-  }
-
-  var pots = game['pots'];
-  $pots.empty();
-  for (var i = 0; i < pots.length; i++) {
-    var pot = pots[i];
-    $pots.append('<div>Pot: '+pot['money']+'</div>');
-  }
-
-  var cc = game['community_cards'];
-  $communityCards.empty();
-  for (var i = 0; i < cc.length; i++) {
-    var c = cc[i];
-    $communityCards.append(card_to_html(c));
-  }
-
+  gameState = res['game'];
   draw(res['game']);
 }
 

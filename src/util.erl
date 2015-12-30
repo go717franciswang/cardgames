@@ -2,7 +2,8 @@
 -export([card_to_serializable/1, 
         game_state_to_serializable/1, 
         seat_to_serializable/1,
-        pot_to_serializable/1
+        pot_to_serializable/1,
+        pid_to_serializable/1
     ]).
 -include("records.hrl").
 
