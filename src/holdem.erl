@@ -8,7 +8,7 @@
 
 %% gen_fsm.
 -export([init/1]).
--export([waiting_for_players/3, game_in_progess/3, game_in_progess/2]).
+-export([waiting_for_players/3, waiting_for_players/2, game_in_progess/3, game_in_progess/2]).
 -export([handle_event/3]).
 -export([handle_sync_event/4]).
 -export([handle_info/3]).
@@ -16,7 +16,7 @@
 -export([code_change/4]).
 
 -record(state, {deck, users=[], seats, actor, actor_options=[], community_cards=[], stage,
-        timeout=30000, timer
+        timeout=30000, timer, restart_timer=5000
 }).
 -include("records.hrl").
 
@@ -52,28 +52,19 @@ waiting_for_players({sit, Player}, _From, StateData) ->
         end, seats:show_active_seats(StateData#state.seats)),
     seats:join(StateData#state.seats, Player),
     {reply, ok, waiting_for_players, StateData};
-waiting_for_players(start_game, _From, #state{seats=Seats,timeout=Timeout}=StateData) ->
-    case length(seats:show_active_seats(Seats)) of
+waiting_for_players(start_game, _From, StateData) ->
+    case length(seats:show_active_seats(StateData#state.seats)) of
         N when N < 2 -> {reply, {error, not_enough_players}, waiting_for_players, StateData};
-        _ -> 
-            {ok, Deck} = deck:start_link(),
-            NewState = StateData#state{deck=Deck},
-            seats:rotate_dealer_button(Seats),
-            {SmallBlind, BigBlind} = seats:get_blinds(Seats),
-            seats:handle_action(Seats, SmallBlind, small_blind),
-            seats:handle_action(Seats, BigBlind, big_blind),
-            DealTimes = length(seats:show_active_seats(Seats))*2,
-            deal_cards_(NewState, SmallBlind, DealTimes),
-            ActorSeat = seats:get_preflop_actor(Seats),
-            Options = seats:get_available_options(Seats, ActorSeat),
-            player:notify(ActorSeat#seat.player, {signal_turn, Options}),
-            Timer = gen_fsm:start_timer(Timeout, get_timeout_action_(Options)),
-            broadcast_(StateData, game_started),
-            {reply, ok, game_in_progess, 
-                NewState#state{actor=ActorSeat, stage=preflop, actor_options=Options, timer=Timer}}
+        _ -> {reply, ok, game_in_progess, start_game_routine_(StateData)}
     end;
 waiting_for_players(_, _, StateData) ->
     {reply, ignored, waiting_for_players, StateData}.
+
+waiting_for_players({timeout, _Ref, restart}, StateData) ->
+    case length(seats:show_active_seats(StateData#state.seats)) of
+        N when N < 2 -> {next_state, waiting_for_players, StateData};
+        _ -> {next_state, game_in_progess, start_game_routine_(StateData)}
+    end.
 
 game_in_progess({take_turn,_}, {Player,_Tag}, #state{actor=Actor}=State) when Player /= Actor#seat.player ->
     {reply, {error, not_your_turn}, game_in_progess, State};
@@ -141,6 +132,22 @@ terminate(_Reason, _StateName, _StateData) ->
 
 code_change(_OldVsn, StateName, StateData, _Extra) ->
 	{ok, StateName, StateData}.
+
+start_game_routine_(#state{seats=Seats,timeout=Timeout}=StateData) ->
+    {ok, Deck} = deck:start_link(),
+    NewState = StateData#state{deck=Deck},
+    seats:rotate_dealer_button(Seats),
+    {SmallBlind, BigBlind} = seats:get_blinds(Seats),
+    seats:handle_action(Seats, SmallBlind, small_blind),
+    seats:handle_action(Seats, BigBlind, big_blind),
+    DealTimes = length(seats:show_active_seats(Seats))*2,
+    deal_cards_(NewState, SmallBlind, DealTimes),
+    ActorSeat = seats:get_preflop_actor(Seats),
+    Options = seats:get_available_options(Seats, ActorSeat),
+    player:notify(ActorSeat#seat.player, {signal_turn, Options}),
+    Timer = gen_fsm:start_timer(Timeout, get_timeout_action_(Options)),
+    broadcast_(StateData, game_started),
+    NewState#state{actor=ActorSeat, stage=preflop, actor_options=Options, timer=Timer}.
 
 deal_cards_(_,_,0) -> ok;
 deal_cards_(#state{seats=Seats,deck=Deck}=State,DealTo,TimesLeft) ->
@@ -216,10 +223,11 @@ hand_over_(#state{community_cards=CC,seats=Seats}=State) ->
     game_end_routine_(State),
     State#state{community_cards=[],deck=undefined,stage=hand_over,actor=undefined,actor_options=[]}.
 
-game_end_routine_(#state{seats=Seats,deck=Deck}) ->
+game_end_routine_(#state{seats=Seats,deck=Deck,restart_timer=RestartTimer}) ->
     seats:drop_broke_players(Seats),
     seats:prepare_new_game(Seats),
-    deck:stop(Deck).
+    deck:stop(Deck),
+    gen_fsm:start_timer(RestartTimer, restart).
 
 next_player_(#state{seats=Seats,actor=Actor}=State) ->
     NewActor = seats:get_next_seat(Seats,Actor),
