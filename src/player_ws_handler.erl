@@ -38,7 +38,7 @@ websocket_handle({text, <<"show_cards">>}, Req, #state{player=Player}=State) ->
     {reply, {text, jiffy:encode(hand:cards_to_strs(Cards))}, Req, State};
 websocket_handle({text, <<"take_turn ", Action/binary>>}, Req, #state{player=Player}=State) ->
     Res = player:take_turn(Player, erlang:binary_to_existing_atom(Action, utf8)),
-    {reply, {text, ws_util:build_ok_or_error_reply(take_turn, Res)}, Req, State};
+    {reply, {text, ws_util:build_ok_or_error_reply(took_turn, Res)}, Req, State};
 websocket_handle({text, <<"leave">>}, Req, #state{player=Player}=State) ->
     ok = player:leave(Player),
     {reply, {text, "ok"}, Req, State};

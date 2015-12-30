@@ -36,6 +36,10 @@ handle_event({deal_card, _Card}, State) ->
 handle_event(timeout, State) ->
     State#state.ws ! {reply, ws_util:build_reply(timeout, <<"1">>)},
     {ok, State};
+handle_event({take_turn, Player, Action}, State) ->
+    Content = jiffy:encode(#{player=>util:pid_to_serializable(Player), action=>Action}),
+    State#state.ws ! {reply, ws_util:build_reply(take_turn, Content)},
+    {ok, State};
 handle_event(Event, State) ->
     io:format("Got notification: ~p~n", [Event]),
     State#state.ws ! {reply, update_game},

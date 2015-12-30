@@ -146,6 +146,9 @@ function onMessage(e) {
       case 'signal_turn':
         handle_signal_turn(content);
         break;
+      case 'took_turn':
+        handle_took_turn(content);
+        break;
       case 'take_turn':
         handle_take_turn(content);
         break;
@@ -168,7 +171,7 @@ function handle_new_player(res) {
 function handle_start_game(res) {
   if (res['status'] == 'ok') return;
   else if (res['error'] == 'not_enough_players') {
-    log('Must have at least 2 players to start a game');
+    log('Must have at least 2 players to start a game.');
   } else {
     console.error(res);
   }
@@ -189,12 +192,17 @@ function getNickName(player) {
   return player2nickname[player];
 }
 
-function handle_take_turn(res) {
+function handle_took_turn(res) {
   if (res['error']) {
     log('error: ' + res['error']);
   } else {
     $options.empty();
   }
+}
+
+function handle_take_turn(res) {
+  var nickname = getNickName(res['player']);
+  log(nickname + ' chose to ' + res['action'] + '.');
 }
 
 function handle_timeout(_res) {
