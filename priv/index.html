@@ -162,11 +162,20 @@ function onMessage(e) {
       case 'reveal_cards':
         handle_reveal_cards(content);
         break;
+      case 'community_cards':
+        handle_community_cards(content);
+        break;
       default:
         console.error('unhandled reply: ' + e.data);
     }
   } else {
     console.error('unhandled reply: ' + e.data);
+  }
+}
+
+function handle_community_cards(cards) {
+  if (cards.length > 0) {
+    log('Last game\'s community cards were ' + cards2str(cards) +'.');
   }
 }
 

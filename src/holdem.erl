@@ -186,7 +186,6 @@ handle_action_(#state{seats=Seats,actor=Actor,stage=Stage,timer=Timer,timeout=Ti
 draw_community_cards_(#state{community_cards=CC,deck=Deck,seats=Seats}=State, N, NextStage) ->
     deck:draw_cards(Deck, 1), % burn card
     NewCC = CC ++ deck:draw_cards(Deck, N),
-    broadcast_(State, {community_cards, NewCC}),
     io:format("community cards: ~p~n", [NewCC]),
     seats:clear_last_action(Seats),
     seats:pot_bets(Seats),
@@ -203,14 +202,16 @@ show_down_(#state{community_cards=CC,seats=Seats}=State) ->
     seats:pot_bets(Seats),
     PotWins = seats:show_down(Seats, CC),
     io:format("pot wins: ~p~n", [PotWins]),
+    broadcast_(State, {community_cards, CC}),
     broadcast_(State, {pot_wins, PotWins}),
     game_end_routine_(State),
     State#state{community_cards=[],deck=undefined,stage=show_down,actor=undefined,actor_options=[]}.
 
-hand_over_(#state{seats=Seats}=State) ->
+hand_over_(#state{community_cards=CC,seats=Seats}=State) ->
     seats:pot_bets(Seats),
     PotWins = seats:hand_over(Seats),
     io:format("pot wins: ~p~n", [PotWins]),
+    broadcast_(State, {community_cards, CC}),
     broadcast_(State, {pot_wins, PotWins}),
     game_end_routine_(State),
     State#state{community_cards=[],deck=undefined,stage=hand_over,actor=undefined,actor_options=[]}.
