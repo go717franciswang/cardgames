@@ -53,21 +53,25 @@ waiting_for_players({sit, Player}, _From, StateData) ->
     seats:join(StateData#state.seats, Player),
     {reply, ok, waiting_for_players, StateData};
 waiting_for_players(start_game, _From, #state{seats=Seats,timeout=Timeout}=StateData) ->
-    {ok, Deck} = deck:start_link(),
-    NewState = StateData#state{deck=Deck},
-    seats:rotate_dealer_button(Seats),
-    {SmallBlind, BigBlind} = seats:get_blinds(Seats),
-    seats:handle_action(Seats, SmallBlind, small_blind),
-    seats:handle_action(Seats, BigBlind, big_blind),
-    DealTimes = length(seats:show_active_seats(Seats))*2,
-    deal_cards_(NewState, SmallBlind, DealTimes),
-    ActorSeat = seats:get_preflop_actor(Seats),
-    Options = seats:get_available_options(Seats, ActorSeat),
-    player:notify(ActorSeat#seat.player, {signal_turn, Options}),
-    Timer = gen_fsm:start_timer(Timeout, get_timeout_action_(Options)),
-    broadcast_(StateData, game_started),
-    {reply, ok, game_in_progess, 
-        NewState#state{actor=ActorSeat, stage=preflop, actor_options=Options, timer=Timer}};
+    case length(seats:show_active_seats(Seats)) of
+        N when N < 2 -> {reply, {error, not_enough_players}, waiting_for_players, StateData};
+        _ -> 
+            {ok, Deck} = deck:start_link(),
+            NewState = StateData#state{deck=Deck},
+            seats:rotate_dealer_button(Seats),
+            {SmallBlind, BigBlind} = seats:get_blinds(Seats),
+            seats:handle_action(Seats, SmallBlind, small_blind),
+            seats:handle_action(Seats, BigBlind, big_blind),
+            DealTimes = length(seats:show_active_seats(Seats))*2,
+            deal_cards_(NewState, SmallBlind, DealTimes),
+            ActorSeat = seats:get_preflop_actor(Seats),
+            Options = seats:get_available_options(Seats, ActorSeat),
+            player:notify(ActorSeat#seat.player, {signal_turn, Options}),
+            Timer = gen_fsm:start_timer(Timeout, get_timeout_action_(Options)),
+            broadcast_(StateData, game_started),
+            {reply, ok, game_in_progess, 
+                NewState#state{actor=ActorSeat, stage=preflop, actor_options=Options, timer=Timer}}
+    end;
 waiting_for_players(_, _, StateData) ->
     {reply, ignored, waiting_for_players, StateData}.
 

@@ -31,17 +31,14 @@ websocket_handle({text, <<"sit">>}, Req, #state{player=Player}=State) ->
     Reply = build_game_state_reply_(sit, Player),
     {reply, {text, Reply}, Req, State};
 websocket_handle({text, <<"start_game">>}, Req, #state{player=Player}=State) ->
-    ok = player:start_game(Player),
-    {reply, {text, "start_game|{\"status\":\"ok\"}"}, Req, State};
+    Res = player:start_game(Player),
+    {reply, {text, build_ok_or_error_reply_(start_game, Res)}, Req, State};
 websocket_handle({text, <<"show_cards">>}, Req, #state{player=Player}=State) ->
     Cards = player:show_cards(Player),
     {reply, {text, jiffy:encode(hand:cards_to_strs(Cards))}, Req, State};
 websocket_handle({text, <<"take_turn ", Action/binary>>}, Req, #state{player=Player}=State) ->
-    Reply = case player:take_turn(Player, erlang:binary_to_existing_atom(Action, utf8)) of
-        ok -> "take_turn|{\"status\":\"ok\"}";
-        {error, E} -> build_reply_(take_turn, jiffy:encode(#{error => E}))
-    end,
-    {reply, {text, Reply}, Req, State};
+    Res = player:take_turn(Player, erlang:binary_to_existing_atom(Action, utf8)),
+    {reply, {text, build_ok_or_error_reply_(take_turn, Res)}, Req, State};
 websocket_handle({text, <<"leave">>}, Req, #state{player=Player}=State) ->
     ok = player:leave(Player),
     {reply, {text, "ok"}, Req, State};
@@ -73,4 +70,9 @@ build_game_state_reply_(Header, Player) ->
     GameState = player:show_game_state(Player),
     Bin = jiffy:encode(#{status=>ok, game=>util:game_state_to_serializable(GameState)}),
     build_reply_(Header, Bin).
+
+build_ok_or_error_reply_(Header, ok) ->
+    build_reply_(Header, jiffy:encode(#{status => ok}));
+build_ok_or_error_reply_(Header, {error, E}) ->
+    build_reply_(Header, jiffy:encode(#{error => E})).
 
