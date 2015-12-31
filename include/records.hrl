@@ -11,7 +11,7 @@
 %      reset to undefined after each round unless it's folded
 %      reset to undefined after each game
 % cards: the 2 face-down cards a player have
--record(seat, {position, player, money=0, bet=0, last_action, cards=[]}).
+-record(seat, {position, player, money=0.0, bet=0.0, last_action, cards=[]}).
 
 % name: royal_flush|straight_flush|...
 % rank_vals: int value of each card used for comparing hands of the same name

@@ -89,9 +89,9 @@ all_in_test() ->
     seats:pot_bets(Seats),
     [NS1, NS2] = seats:show_active_seats(Seats),
     [Pot] = seats:get_pots(Seats),
-    ?assertMatch(#pot{money=10}, Pot),
-    ?assertEqual(0, NS1#seat.money),
-    ?assertEqual(10, NS2#seat.money).
+    ?assertMatch(#pot{money=10.0}, Pot),
+    ?assertEqual(0.0, NS1#seat.money),
+    ?assertEqual(10.0, NS2#seat.money).
 
 get_next_seat_test() ->
     {ok, Seats} = seats:start_link(6),
@@ -155,8 +155,8 @@ pot_bets_test() ->
     [NS1, NS2] = seats:show_active_seats(Seats),
     [Pot] = seats:get_pots(Seats),
     ?assertEqual(0.2, Pot#pot.money),
-    ?assertEqual(0, NS1#seat.bet),
-    ?assertEqual(0, NS2#seat.bet).
+    ?assertEqual(0.0, NS1#seat.bet),
+    ?assertEqual(0.0, NS2#seat.bet).
 
 drop_broke_players_test() ->
     {ok, Seats} = seats:start_link(6),
@@ -164,7 +164,7 @@ drop_broke_players_test() ->
     seats:join(Seats, dummy_player2),
     [S1, S2] = seats:show_active_seats(Seats),
 
-    seats:set_money(Seats, S1, 0),
+    seats:set_money(Seats, S1, 0.0),
     seats:drop_broke_players(Seats),
 
     LeftOver = seats:show_active_seats(Seats),
@@ -185,7 +185,7 @@ show_down_test() ->
     seats:pot_bets(Seats),
     PotWins = seats:show_down(Seats, CC),
     ?assertMatch([#pot_wins{
-                pot=#pot{money=20},
+                pot=#pot{money=20.0},
                 wins=[#play{hand=#hand{name=royal_flush}},#play{hand=#hand{name=royal_flush}}]
             }], PotWins).
 
@@ -200,7 +200,7 @@ hand_over_test() ->
     seats:pot_bets(Seats),
     PotWins = seats:hand_over(Seats),
     P2 = S2#seat.player,
-    ?assertMatch([#pot_wins{pot=#pot{money=20}, wins=[#play{player=P2}]}], PotWins).
+    ?assertMatch([#pot_wins{pot=#pot{money=20.0}, wins=[#play{player=P2}]}], PotWins).
 
 
 

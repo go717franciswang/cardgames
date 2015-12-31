@@ -81,7 +81,7 @@ handle_call({show_seats, Player}, _From, State) ->
 handle_call({join, Player}, _From, State) ->
     Seats = State#state.seats,
     EmptySeat = get_empty_seat_(State),
-    NewSeat = EmptySeat#seat{player=Player, money=10},
+    NewSeat = EmptySeat#seat{player=Player, money=10.0},
     NewSeats = lists:keystore(NewSeat#seat.position, #seat.position, Seats, NewSeat),
     {reply, ok, State#state{seats=NewSeats}};
 handle_call(rotate_dealer_button, _From, State) ->
@@ -168,13 +168,13 @@ handle_call(pot_bets, _From, #state{seats=Seats,pots=Pots}=State) ->
     {SinglePots, MultiPots} = pot:split_single_player_pots(MergedPots),
     NewSeats0 = lists:map(
         fun(#seat{bet=B,money=M}=S) ->
-                S#seat{bet=0,money=max(0,M-B)}
+                S#seat{bet=0.0,money=max(0.0,pot:round_money(M-B))}
         end, Seats),
     NewSeats = lists:foldl(
         fun(#pot{money=M1,eligible_ids=[Pos]},Ss) ->
                 S = lists:keyfind(Pos, #seat.position, Ss),
                 M0 = S#seat.money,
-                lists:keystore(Pos, #seat.position, Ss, S#seat{money=M0+M1})
+                lists:keystore(Pos, #seat.position, Ss, S#seat{money=pot:round_money(M0+M1)})
         end, NewSeats0, SinglePots),
     {reply, ok, State#state{seats=NewSeats,pots=MultiPots}};
 handle_call(get_pots, _From, State) ->
@@ -206,7 +206,7 @@ handle_call({leave, Player}, _From, #state{seats=Seats}=State) ->
     {reply, Reply, State#state{seats=NewSeats}};
 handle_call(drop_broke_players, _From, #state{seats=Seats}=State) ->
     NewSeats = lists:map(
-        fun(#seat{money=0,position=Pos}) -> #seat{position=Pos};
+        fun(#seat{money=0.0,position=Pos}) -> #seat{position=Pos};
            (Seat) -> Seat
         end, Seats),
     {reply, ok, State#state{seats=NewSeats}};
@@ -322,7 +322,7 @@ distribute_winning_(#state{seats=Seats}=State, [#pot_wins{pot=#pot{money=M},wins
         fun(#play{player=P}, SS) ->
                 S = lists:keyfind(P, #seat.player, SS),
                 Money = S#seat.money,
-                NS = S#seat{money=Money+MoneyPerWinner},
+                NS = S#seat{money=pot:round_money(Money+MoneyPerWinner)},
                 lists:keystore(P, #seat.player, SS, NS)
         end, Seats, Plays),
     distribute_winning_(State#state{seats=NewSeats,pots=[]}, PotWins);
