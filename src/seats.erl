@@ -10,7 +10,7 @@
         pot_bets/1, get_pots/1, prepare_new_game/1,
         show_cards_from_player/2, is_hand_over/1, get_available_options/2,
         leave/2, drop_broke_players/1, set_money/3, show_down/2, 
-        hand_over/1, get_nonfolded_seats/1]).
+        hand_over/1, get_nonfolded_seats/1, mark_active_players/1, get_nonempty_seats/1]).
 
 %% gen_server.
 -export([init/1]).
@@ -58,6 +58,8 @@ drop_broke_players(Pid) -> gen_server:call(Pid, drop_broke_players).
 show_down(Pid, CC) -> gen_server:call(Pid, {show_down, CC}).
 hand_over(Pid) -> gen_server:call(Pid, hand_over).
 get_nonfolded_seats(Pid) -> gen_server:call(Pid, get_nonfolded_seats).
+mark_active_players(Pid) -> gen_server:call(Pid, mark_active_players).
+get_nonempty_seats(Pid) -> gen_server:call(Pid, get_nonempty_seats).
 
 %% gen_server.
 
@@ -180,7 +182,7 @@ handle_call(pot_bets, _From, #state{seats=Seats,pots=Pots}=State) ->
 handle_call(get_pots, _From, State) ->
     {reply, State#state.pots, State};
 handle_call(prepare_new_game, _From, #state{seats=Seats}=State) ->
-    NewSeats = [Seat#seat{last_action=undefined,cards=[]} || Seat <- Seats],
+    NewSeats = [Seat#seat{last_action=undefined,cards=[],is_active=false} || Seat <- Seats],
     {reply, ok, State#state{seats=NewSeats}};
 handle_call({show_cards_from_player,Player}, _From, #state{seats=Seats}=State) ->
     Seat = lists:keyfind(Player, #seat.player, Seats),
@@ -245,6 +247,14 @@ handle_call(hand_over, _From, #state{seats=Seats,pots=Pots}=State) ->
     {reply, Reply, NewState};
 handle_call(get_nonfolded_seats, _From, State) ->
     {reply, get_nonfolded_seats_(State), State};
+handle_call(mark_active_players, _From, #state{seats=Seats}=State) ->
+    NewSeats = lists:map(
+        fun(#seat{player=undefined}=S) -> S;
+           (S) -> S#seat{is_active=true}
+        end, Seats),
+    {reply, ok, State#state{seats=NewSeats}};
+handle_call(get_nonempty_seats, _From, State) ->
+    {reply, get_nonempty_seats_(State), State};
 handle_call(_Request, _From, State) ->
 	{reply, ignored, State}.
 
@@ -275,15 +285,19 @@ get_blinds_(State) ->
     end.
 
 get_active_seats_(#state{seats=Seats}) ->
+    [X || X <- Seats, X#seat.player /= undefined, X#seat.is_active].
+
+get_nonempty_seats_(#state{seats=Seats}) ->
     [X || X <- Seats, X#seat.player /= undefined].
 
 get_nonfolded_seats_(#state{seats=Seats}) ->
-    [X || X <- Seats, X#seat.player /= undefined, X#seat.last_action /= fold].
+    [X || X <- Seats, X#seat.player /= undefined, X#seat.last_action /= fold, X#seat.is_active].
 
 get_next_seat_(State, #seat{position=Pos}) ->
     ActiveSeats = get_active_seats_(State),
     {Front, Back} = lists:splitwith(fun(#seat{position=P}) -> P /= Pos end, ActiveSeats),
-    [_,Next|_] = Back++Front,
+    [H|T] = Back++Front,
+    [Next|_] = [X || X <- T, X#seat.last_action /= fold]++[H],
     Next.
 
 % BetAmount represent final bet amount, it is not incremental change
@@ -296,7 +310,7 @@ place_bet_(State, #seat{position=Pos}, BetAmount) ->
     State#state{seats=NewSeats}.
 
 get_call_amount_(State) ->
-    Seats = get_active_seats_(State),
+    Seats = get_nonempty_seats_(State),
     lists:max([Seat#seat.bet || Seat <- Seats]).
 
 get_raise_amount_(State) ->

@@ -60,18 +60,18 @@ place_bet_test() ->
     {ok, Seats} = seats:start_link(6),
     seats:join(Seats, dummy_player1),
     seats:join(Seats, dummy_player2),
-    [S1, S2] = seats:show_active_seats(Seats),
+    [S1, S2] = seats:get_nonempty_seats(Seats),
 
     seats:place_bet(Seats, S1, 1),
     seats:place_bet(Seats, S2, 2),
 
-    [NS1, NS2] = seats:show_active_seats(Seats),
+    [NS1, NS2] = seats:get_nonempty_seats(Seats),
     ?assertEqual(1, NS1#seat.bet),
     ?assertEqual(2, NS2#seat.bet),
 
     seats:place_bet(Seats, S1, 2),
     seats:place_bet(Seats, S2, 3),
-    [NS1_, NS2_] = seats:show_active_seats(Seats),
+    [NS1_, NS2_] = seats:get_nonempty_seats(Seats),
     ?assertEqual(2, NS1_#seat.bet),
     ?assertEqual(3, NS2_#seat.bet).
 
@@ -79,6 +79,7 @@ all_in_test() ->
     {ok, Seats} = seats:start_link(6),
     seats:join(Seats, dummy_player1),
     seats:join(Seats, dummy_player2),
+    seats:mark_active_players(Seats),
     [S1, S2] = seats:show_active_seats(Seats),
 
     seats:set_money(Seats, S1, 5),
@@ -97,6 +98,7 @@ get_next_seat_test() ->
     {ok, Seats} = seats:start_link(6),
     seats:join(Seats, dummy_player1),
     seats:join(Seats, dummy_player2),
+    seats:mark_active_players(Seats),
     [S1, S2] = seats:show_active_seats(Seats),
 
     ?assertEqual(S2, seats:get_next_seat(Seats, S1)),
@@ -106,6 +108,7 @@ handle_action_call_test() ->
     {ok, Seats} = seats:start_link(6),
     seats:join(Seats, dummy_player1),
     seats:join(Seats, dummy_player2),
+    seats:mark_active_players(Seats),
     [S1, S2] = seats:show_active_seats(Seats),
     seats:place_bet(Seats, S1, 1),
     seats:handle_action(Seats, S2, call),
@@ -118,6 +121,7 @@ handle_action_raise_test() ->
     {ok, Seats} = seats:start_link(6),
     seats:join(Seats, dummy_player1),
     seats:join(Seats, dummy_player2),
+    seats:mark_active_players(Seats),
     [S1, S2] = seats:show_active_seats(Seats),
     seats:place_bet(Seats, S1, 1),
     seats:handle_action(Seats, S2, raise),
@@ -130,6 +134,7 @@ is_betting_complete_test() ->
     {ok, Seats} = seats:start_link(6),
     seats:join(Seats, dummy_player1),
     seats:join(Seats, dummy_player2),
+    seats:mark_active_players(Seats),
     ?assertEqual(false, seats:is_betting_complete(Seats)),
 
     [S1, S2] = seats:show_active_seats(Seats),
@@ -146,6 +151,7 @@ pot_bets_test() ->
     {ok, Seats} = seats:start_link(6),
     seats:join(Seats, dummy_player1),
     seats:join(Seats, dummy_player2),
+    seats:mark_active_players(Seats),
     [S1, S2] = seats:show_active_seats(Seats),
     seats:handle_action(Seats, S1, small_blind),
     seats:handle_action(Seats, S2, big_blind),
@@ -162,6 +168,7 @@ drop_broke_players_test() ->
     {ok, Seats} = seats:start_link(6),
     seats:join(Seats, dummy_player1),
     seats:join(Seats, dummy_player2),
+    seats:mark_active_players(Seats),
     [S1, S2] = seats:show_active_seats(Seats),
 
     seats:set_money(Seats, S1, 0.0),
@@ -174,6 +181,7 @@ show_down_test() ->
     {ok, Seats} = seats:start_link(6),
     seats:join(Seats, dummy_player1),
     seats:join(Seats, dummy_player2),
+    seats:mark_active_players(Seats),
     [S1, S2] = seats:show_active_seats(Seats),
     CC = hand:strs_to_cards(["AH","KH","QH","JH","TH"]),
     seats:deal_card(Seats, S1#seat.player, hand:str_to_card("2H")),
@@ -193,6 +201,7 @@ hand_over_test() ->
     {ok, Seats} = seats:start_link(6),
     seats:join(Seats, dummy_player1),
     seats:join(Seats, dummy_player2),
+    seats:mark_active_players(Seats),
     [S1, S2] = seats:show_active_seats(Seats),
     seats:place_bet(Seats, S1, 10),
     seats:place_bet(Seats, S2, 10),

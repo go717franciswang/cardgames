@@ -1,12 +1,12 @@
 -module(player_SUITE).
 -export([all/0, init_per_testcase/2, end_per_testcase/2]).
 -export([testShowDown/1, testHandOver/1, testPlayerLeaveDuringGame/1, testPlayerLeaveDuringGameDuringTurn/1,
-    testPlayerLeaveDuringWait/1, testTimeout/1, testTableAutoDelete/1]).
+    testPlayerLeaveDuringWait/1, testTimeout/1, testTableAutoDelete/1, testPlayerJoiningDuringGame/1]).
 -include_lib("common_test/include/ct.hrl").
 -include("records.hrl").
 
 all() -> [testShowDown, testHandOver, testPlayerLeaveDuringGame, testPlayerLeaveDuringGameDuringTurn,
-    testPlayerLeaveDuringWait, testTimeout, testTableAutoDelete].
+    testPlayerLeaveDuringWait, testTimeout, testTableAutoDelete, testPlayerJoiningDuringGame].
 
 init_per_testcase(testPlayerLeaveDuringWait, Config) -> Config;
 init_per_testcase(_TestName, Config) ->
@@ -97,6 +97,7 @@ testHandOver(Config) ->
     SB = ?config(sb, Config),
     BB = ?config(bb, Config),
 
+    io:format("current seats: ~p~n", [seats:show_active_seats(Seats)]),
     ok = player:take_turn(FirstActor#seat.player, call),
     ok = player:take_turn(Dealer#seat.player, fold),
     ok = player:take_turn(SB#seat.player, fold),
@@ -111,6 +112,7 @@ testPlayerLeaveDuringGame(Config) ->
     SB = ?config(sb, Config),
     BB = ?config(bb, Config),
 
+    io:format("current seats: ~p~n", [seats:show_active_seats(Seats)]),
     ok = player:take_turn(FirstActor#seat.player, call),
     ok = player:leave(SB#seat.player),
     ok = player:take_turn(Dealer#seat.player, fold),
@@ -126,6 +128,7 @@ testPlayerLeaveDuringGameDuringTurn(Config) ->
     SB = ?config(sb, Config),
     BB = ?config(bb, Config),
 
+    io:format("current seats: ~p~n", [seats:show_active_seats(Seats)]),
     ok = player:take_turn(FirstActor#seat.player, call),
     ok = player:take_turn(Dealer#seat.player, fold),
     ok = player:leave(SB#seat.player),
@@ -181,3 +184,25 @@ testTableAutoDelete(Config) ->
     player:leave(SB#seat.player),
     player:leave(BB#seat.player),
     [] = tables_sup:list_tables().
+
+testPlayerJoiningDuringGame(Config) ->
+    Seats = ?config(seats, Config),
+    FirstActor = ?config(first_actor, Config),
+    Dealer = ?config(dealer, Config),
+    SB = ?config(sb, Config),
+    BB = ?config(bb, Config),
+
+    ok = player:take_turn(FirstActor#seat.player, call),
+
+    {ok, Player5} = players_sup:create_player(p),
+    [TableId] = tables_sup:list_tables(),
+    ok = player:join_table(Player5, TableId),
+    ok = player:sit(Player5),
+    
+    io:format("current seats: ~p~n", [seats:show_active_seats(Seats)]),
+    ok = player:take_turn(Dealer#seat.player, fold),
+    ok = player:take_turn(SB#seat.player, fold),
+    ok = player:take_turn(BB#seat.player, fold),
+
+    io:format("current seats: ~p~n", [seats:show_active_seats(Seats)]).
+

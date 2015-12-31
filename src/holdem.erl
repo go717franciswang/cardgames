@@ -28,7 +28,7 @@ start_link(TableId) ->
 
 join(Pid, Player) -> gen_fsm:sync_send_all_state_event(Pid, {join, Player}).
 leave(Pid, Player) -> gen_fsm:sync_send_all_state_event(Pid, {leave, Player}).
-sit(Pid, Player) -> gen_fsm:sync_send_event(Pid, {sit, Player}).
+sit(Pid, Player) -> gen_fsm:sync_send_all_state_event(Pid, {sit, Player}).
 start_game(Pid) -> gen_fsm:sync_send_event(Pid, start_game).
 get_seats(Pid) -> gen_fsm:sync_send_all_state_event(Pid, get_seats).
 take_turn(Pid, Action) -> gen_fsm:sync_send_event(Pid, {take_turn, Action}).
@@ -44,16 +44,8 @@ init([TableId]) ->
     {ok, Seats} = seats:start_link(6),
 	{ok, waiting_for_players, #state{seats=Seats, id=TableId}}.
 
-waiting_for_players({sit, Player}, _From, StateData) ->
-    io:format("broadcast new player: ~p~n", [Player]),
-    lists:foreach(
-        fun(#seat{player=P}) -> 
-                player:notify(P, {new_player, Player})
-        end, seats:show_active_seats(StateData#state.seats)),
-    seats:join(StateData#state.seats, Player),
-    {reply, ok, waiting_for_players, StateData};
 waiting_for_players(start_game, _From, StateData) ->
-    case length(seats:show_active_seats(StateData#state.seats)) of
+    case length(seats:get_nonempty_seats(StateData#state.seats)) of
         N when N < 2 -> {reply, {error, not_enough_players}, waiting_for_players, StateData};
         _ -> {reply, ok, game_in_progess, start_game_routine_(StateData)}
     end;
@@ -61,7 +53,7 @@ waiting_for_players(_, _, StateData) ->
     {reply, ignored, waiting_for_players, StateData}.
 
 waiting_for_players({timeout, _Ref, restart}, StateData) ->
-    case length(seats:show_active_seats(StateData#state.seats)) of
+    case length(seats:get_nonempty_seats(StateData#state.seats)) of
         N when N < 2 -> {next_state, waiting_for_players, StateData};
         _ -> {next_state, game_in_progess, start_game_routine_(StateData)}
     end.
@@ -95,6 +87,14 @@ handle_event({register_nickname, Player, NickName}, StateName, #state{users=User
 handle_event(_Event, StateName, StateData) ->
 	{next_state, StateName, StateData}.
 
+handle_sync_event({sit, Player}, _From, StateName, StateData) ->
+    io:format("broadcast new player: ~p~n", [Player]),
+    lists:foreach(
+        fun(#seat{player=P}) -> 
+                player:notify(P, {new_player, Player})
+        end, seats:show_active_seats(StateData#state.seats)),
+    seats:join(StateData#state.seats, Player),
+    {reply, ok, StateName, StateData};
 handle_sync_event({join, Player}, _From, StateName, StateData) ->
     Users = [#user{player=Player}|StateData#state.users],
     broadcast_(StateData, {join, Player}),
@@ -141,6 +141,7 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 start_game_routine_(#state{seats=Seats,timeout=Timeout}=StateData) ->
     {ok, Deck} = deck:start_link(),
     NewState = StateData#state{deck=Deck},
+    seats:mark_active_players(Seats),
     seats:rotate_dealer_button(Seats),
     {SmallBlind, BigBlind} = seats:get_blinds(Seats),
     seats:handle_action(Seats, SmallBlind, small_blind),
