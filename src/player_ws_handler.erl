@@ -3,6 +3,7 @@
 -export([init/2]).
 -export([websocket_handle/3]).
 -export([websocket_info/3]).
+-export([terminate/3]).
 
 -record(state, { player
 }).
@@ -13,7 +14,7 @@ init(Req, _Opts) ->
     #{nickname := NickName} = cowboy_req:match_qs([nickname], Req),
     {ok, Player} = players_sup:create_player(NickName),
     player:add_event_handler(Player, player_ws_event_handler, [self()]),
-    {cowboy_websocket, Req, #state{player=Player}}.
+    {cowboy_websocket, Req, #state{player=Player}, 30000}.
 
 websocket_handle({text, <<"create_table">>}, Req, #state{player=Player}=State) ->
     {ok, _Table} = player:create_table(Player),
@@ -42,6 +43,8 @@ websocket_handle({text, <<"take_turn ", Action/binary>>}, Req, #state{player=Pla
 websocket_handle({text, <<"leave">>}, Req, #state{player=Player}=State) ->
     ok = player:leave(Player),
     {reply, {text, "ok"}, Req, State};
+websocket_handle({text, <<"ping">>}, Req, State) ->
+    {ok, Req, State};
 websocket_handle({text, Data}, Req, State) ->
     io:format("Got message: ~p~n", [Data]),
 	{reply, {text, Data}, Req, State};
@@ -61,4 +64,7 @@ websocket_info({reply, Reply}, Req, State) ->
 websocket_info(_Info, Req, State) ->
 	{ok, Req, State}.
 
-
+terminate(_Info, _Req, #state{player=Player}) ->
+    player:leave(Player),
+    players_sup:terminate_player(Player),
+    ok.

@@ -52,6 +52,7 @@ var $options = $('#options');
 
 var websocket;
 var gameState;
+var pingTimer;
 
 $conServerBtn.click(function() {
   connect();
@@ -98,6 +99,10 @@ function onOpen(e) {
   log('You are connected.');
   $conPanel.hide();
   $gameSelect.show();
+
+  pingTimer = window.setInterval(function() {
+    websocket.send('ping');
+  }, 10000);
 }
 
 function onClose(e) {
@@ -105,6 +110,8 @@ function onClose(e) {
   $conPanel.show();
   $gameSelect.hide();
   $table.hide();
+
+  window.clearInterval(pingTimer);
 }
 
 function onMessage(e) {

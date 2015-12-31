@@ -3,7 +3,7 @@
 
 -export([start_link/0]).
 -export([init/1]).
--export([create_player/1]).
+-export([create_player/1, terminate_player/1]).
 
 start_link() ->
 	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
@@ -13,6 +13,9 @@ create_player(NickName) ->
     supervisor:start_child(?MODULE, {ChildId,
             {player, start_link, [NickName]},
             transient, 5000, worker, [player]}).
+
+terminate_player(Pid) ->
+    supervisor:terminate_child(?MODULE, Pid).
 
 init([]) ->
 	Procs = [],
