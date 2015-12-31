@@ -11,8 +11,8 @@ start_link() ->
 create_table() ->
     ChildId = erlang:unique_integer(),
     supervisor:start_child(?MODULE, {ChildId, 
-            {holdem, start_link, []}, 
-            transient, 5000, worker, [holdem]}).
+            {holdem, start_link, [ChildId]}, 
+            temporary, 5000, worker, [holdem]}).
 
 list_tables() ->
     Children = supervisor:which_children(?MODULE),

@@ -2,7 +2,7 @@
 -behaviour(gen_fsm).
 
 %% API.
--export([start_link/0]).
+-export([start_link/1]).
 -export([join/2, sit/2, start_game/1, get_seats/1, take_turn/2, show_cards/2,
          leave/2, set_timeout/2, show_game_state/1, register_nickname/3]).
 
@@ -16,15 +16,15 @@
 -export([code_change/4]).
 
 -record(state, {deck, users=[], seats, actor, actor_options=[], community_cards=[], stage,
-        timeout=30000, timer, restart_timer=5000
+        timeout=30000, timer, restart_timer=5000, id
 }).
 -include("records.hrl").
 
 %% API.
 
--spec start_link() -> {ok, pid()}.
-start_link() ->
-	gen_fsm:start_link(?MODULE, [], []).
+-spec start_link(any()) -> {ok, pid()}.
+start_link(TableId) ->
+	gen_fsm:start_link(?MODULE, [TableId], []).
 
 join(Pid, Player) -> gen_fsm:sync_send_all_state_event(Pid, {join, Player}).
 leave(Pid, Player) -> gen_fsm:sync_send_all_state_event(Pid, {leave, Player}).
@@ -40,9 +40,9 @@ register_nickname(Pid, Player, NickName) ->
 
 %% gen_fsm.
 
-init([]) ->
+init([TableId]) ->
     {ok, Seats} = seats:start_link(6),
-	{ok, waiting_for_players, #state{seats=Seats}}.
+	{ok, waiting_for_players, #state{seats=Seats, id=TableId}}.
 
 waiting_for_players({sit, Player}, _From, StateData) ->
     io:format("broadcast new player: ~p~n", [Player]),
@@ -105,8 +105,13 @@ handle_sync_event({leave, Player}, _From, StateName, #state{seats=Seats,users=Us
         {error, no_such_player} -> ok
     end,
     NewUsers = lists:keydelete(Player, #user.player, Users),
-    broadcast_(StateData, {leave, Player}),
-    {reply, ok, StateName, StateData#state{users=NewUsers}};
+    NewState = StateData#state{users=NewUsers},
+    broadcast_(NewState, {leave, Player}),
+
+    case NewUsers of
+        [] -> {stop, normal, ok, NewState};
+        _ -> {reply, ok, StateName, NewState}
+    end;
 handle_sync_event(get_seats, _From, StateName, StateData) ->
     {reply, StateData#state.seats, StateName, StateData};
 handle_sync_event(show_game_state, {Player, _Tag}, StateName, 

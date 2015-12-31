@@ -12,7 +12,7 @@ create_player(NickName) ->
     ChildId = erlang:unique_integer(),
     supervisor:start_child(?MODULE, {ChildId,
             {player, start_link, [NickName]},
-            transient, 5000, worker, [player]}).
+            temporary, 5000, worker, [player]}).
 
 terminate_player(Pid) ->
     supervisor:terminate_child(?MODULE, Pid).

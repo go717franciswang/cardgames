@@ -1,12 +1,12 @@
 -module(player_SUITE).
 -export([all/0, init_per_testcase/2, end_per_testcase/2]).
 -export([testShowDown/1, testHandOver/1, testPlayerLeaveDuringGame/1, testPlayerLeaveDuringGameDuringTurn/1,
-    testPlayerLeaveDuringWait/1, testTimeout/1]).
+    testPlayerLeaveDuringWait/1, testTimeout/1, testTableAutoDelete/1]).
 -include_lib("common_test/include/ct.hrl").
 -include("records.hrl").
 
 all() -> [testShowDown, testHandOver, testPlayerLeaveDuringGame, testPlayerLeaveDuringGameDuringTurn,
-    testPlayerLeaveDuringWait, testTimeout].
+    testPlayerLeaveDuringWait, testTimeout, testTableAutoDelete].
 
 init_per_testcase(testPlayerLeaveDuringWait, Config) -> Config;
 init_per_testcase(_TestName, Config) ->
@@ -171,3 +171,13 @@ testTimeout(Config) ->
 
     io:format("current seats: ~p~n", [seats:show_active_seats(Seats)]).
 
+testTableAutoDelete(Config) ->
+    FirstActor = ?config(first_actor, Config),
+    Dealer = ?config(dealer, Config),
+    SB = ?config(sb, Config),
+    BB = ?config(bb, Config),
+    player:leave(FirstActor#seat.player),
+    player:leave(Dealer#seat.player),
+    player:leave(SB#seat.player),
+    player:leave(BB#seat.player),
+    [] = tables_sup:list_tables().
