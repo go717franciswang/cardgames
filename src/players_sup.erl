@@ -9,7 +9,7 @@ start_link() ->
 	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 create_player(NickName) ->
-    ChildId = erlang:unique_integer(),
+    ChildId = erlang:unique_integer([positive,monotonic]),
     supervisor:start_child(?MODULE, {ChildId,
             {player, start_link, [NickName]},
             temporary, 5000, worker, [player]}).

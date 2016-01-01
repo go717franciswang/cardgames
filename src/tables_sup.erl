@@ -9,7 +9,7 @@ start_link() ->
 	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 create_table() ->
-    ChildId = erlang:unique_integer(),
+    ChildId = erlang:unique_integer([positive, monotonic]),
     supervisor:start_child(?MODULE, {ChildId, 
             {holdem, start_link, [ChildId]}, 
             temporary, 5000, worker, [holdem]}).
