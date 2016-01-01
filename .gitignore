@@ -8,7 +8,6 @@ ebin
 rel/example_project
 .concrete/DEV_MODE
 .rebar
-rel/
 _rel/
 .erlang.mk/
 *.swp
