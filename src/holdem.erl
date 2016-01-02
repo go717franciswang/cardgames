@@ -88,11 +88,7 @@ handle_event(_Event, StateName, StateData) ->
 	{next_state, StateName, StateData}.
 
 handle_sync_event({sit, Player}, _From, StateName, StateData) ->
-    io:format("broadcast new player: ~p~n", [Player]),
-    lists:foreach(
-        fun(#seat{player=P}) -> 
-                player:notify(P, {new_player, Player})
-        end, seats:show_active_seats(StateData#state.seats)),
+    broadcast_(StateData, {new_player, Player}),
     seats:join(StateData#state.seats, Player),
     {reply, ok, StateName, StateData};
 handle_sync_event({join, Player}, _From, StateName, StateData) ->
