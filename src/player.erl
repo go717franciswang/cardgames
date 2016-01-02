@@ -51,7 +51,9 @@ lobby({join_table, TableId}, _From, StateData) ->
     Pid = tables_sup:id_to_pid(TableId),
     Reply = holdem:join(Pid, self()),
     holdem:register_nickname(Pid, self(), StateData#state.nickname),
-	{reply, Reply, in_game, StateData#state{game=Pid}}.
+	{reply, Reply, in_game, StateData#state{game=Pid}};
+lobby(_Event, _From, StateData) ->
+	{reply, ignored, lobby, StateData}.
 
 in_game(sit, _From, StateData) ->
     Reply = holdem:sit(StateData#state.game, self()),

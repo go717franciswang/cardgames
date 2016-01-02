@@ -37,7 +37,7 @@ function draw(gameState) {
     seatEnter.append('text').attr('class', 'bet').attr('y', 15).attr('dx', 20).attr('text-anchor', 'middle');
     seatEnter.append('text').attr('class', 'cards').attr('y', 30).attr('text-anchor', 'middle');
     seatEnter.append('rect').attr('class', 'timer')
-        .attr('y', 37).attr('transform', 'translate(-25)').attr('width', 0).attr('height', 3);
+        .attr('y', 35).attr('transform', 'translate(-25)').attr('width', 0).attr('height', 3);
 
     seat.select('.nickname').text(function(d) { 
         return d['player'] ? player2nickname[d['player']] : '-';
@@ -49,7 +49,6 @@ function draw(gameState) {
         return d['player'] ? Math.min(d['money'],d['bet']) : '';
     });
     seat.select('.cards').text(function(d) { 
-        if (d['player']) console.log('cards', cards2str(d['cards']));
         return d['player'] ? cards2str(d['cards']) : '';
     });
     seat.select('.timer').attr('player', function(d) {
@@ -64,6 +63,7 @@ function startTimer(player, timeout) {
 
 function stopTimer(player) {
     var timer = d3.select('.timer[player="'+player+'"]');
+    // https://github.com/mbostock/d3/issues/1410#issuecomment-21347123
     timer.transition();
     d3.timer.flush();
     timer.attr('width', 0);

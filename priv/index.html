@@ -82,6 +82,10 @@ $options.on('click', '.actionBtn', function() {
   websocket.send('take_turn ' + this.getAttribute('data'));
 });
 
+$leaveBtn.click(function() {
+  websocket.send('leave');
+});
+
 function connect() {
   var nn = $nickName.val();
   websocket = new WebSocket('ws://' + window.location.host + '/player_ws?nickname=' + encodeURIComponent(nn));
@@ -137,7 +141,6 @@ function onMessage(e) {
         break;
       case 'join_table':
         handle_create_table(content);
-        update_game(content);
         break;
       case 'sit':
         handle_sit(content);
@@ -175,12 +178,20 @@ function onMessage(e) {
       case 'timer':
         handle_timer(content);
         break;
+      case 'leave':
+        handle_leave(content);
+        break;
       default:
         console.error('unhandled reply: ' + e.data);
     }
   } else {
     console.error('unhandled reply: ' + e.data);
   }
+}
+
+function handle_leave(_) {
+  $gameSelect.show();
+  $table.hide();
 }
 
 function handle_timer(res) {
@@ -303,6 +314,7 @@ function handle_create_table(res) {
   if (res['status'] == 'ok') {
     $gameSelect.hide();
     $table.show();
+    update_game(res);
   }
 }
 

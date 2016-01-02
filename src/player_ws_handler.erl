@@ -18,7 +18,8 @@ init(Req, _Opts) ->
 
 websocket_handle({text, <<"create_table">>}, Req, #state{player=Player}=State) ->
     {ok, _Table} = player:create_table(Player),
-    {reply, {text, "create_table|{\"status\":\"ok\"}"}, Req, State};
+    Reply = ws_util:build_game_state_reply(join_table, Player),
+    {reply, {text, Reply}, Req, State};
 websocket_handle({text, <<"list_tables">>}, Req, State) ->
     Tables = tables_sup:list_tables(),
     Reply = ws_util:build_reply(list_tables, jiffy:encode(Tables)),
@@ -42,7 +43,7 @@ websocket_handle({text, <<"take_turn ", Action/binary>>}, Req, #state{player=Pla
     {reply, {text, ws_util:build_ok_or_error_reply(took_turn, Res)}, Req, State};
 websocket_handle({text, <<"leave">>}, Req, #state{player=Player}=State) ->
     ok = player:leave(Player),
-    {reply, {text, "ok"}, Req, State};
+    {reply, {text, "leave|{\"status\":\"ok\"}"}, Req, State};
 websocket_handle({text, <<"ping">>}, Req, State) ->
     {ok, Req, State};
 websocket_handle({text, Data}, Req, State) ->

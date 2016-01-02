@@ -8,8 +8,12 @@ build_reply(Header, Content) ->
 
 build_game_state_reply(Header, Player) ->
     GameState = player:show_game_state(Player),
-    Bin = jiffy:encode(#{status=>ok, game=>util:game_state_to_serializable(GameState)}),
-    build_reply(Header, Bin).
+    case GameState of
+        ignored -> build_reply(Header, <<"ignored">>);
+        _ ->
+            Bin = jiffy:encode(#{status=>ok, game=>util:game_state_to_serializable(GameState)}),
+            build_reply(Header, Bin)
+    end.
 
 build_ok_or_error_reply(Header, ok) ->
     build_reply(Header, jiffy:encode(#{status => ok}));
