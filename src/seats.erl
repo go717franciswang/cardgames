@@ -83,9 +83,14 @@ handle_call({show_seats, Player}, _From, State) ->
 handle_call({join, Player}, _From, State) ->
     Seats = State#state.seats,
     EmptySeat = get_empty_seat_(State),
-    NewSeat = EmptySeat#seat{player=Player, money=10.0},
-    NewSeats = lists:keystore(NewSeat#seat.position, #seat.position, Seats, NewSeat),
-    {reply, ok, State#state{seats=NewSeats}};
+    case EmptySeat of
+        undefined -> 
+            {reply, {error, seats_all_taken}, State};
+        _ ->
+            NewSeat = EmptySeat#seat{player=Player, money=10.0},
+            NewSeats = lists:keystore(NewSeat#seat.position, #seat.position, Seats, NewSeat),
+            {reply, ok, State#state{seats=NewSeats}}
+    end;
 handle_call(rotate_dealer_button, _From, State) ->
     Seats = State#state.seats,
     {Front, Back} = lists:split(State#state.dealer_button_pos, Seats),
@@ -272,7 +277,10 @@ code_change(_OldVsn, State, _Extra) ->
 
 get_empty_seat_(#state{seats=Seats}) ->
     EmptySeats = [X || X <- Seats, X#seat.player == undefined],
-    lists:nth(rand:uniform(length(EmptySeats)), EmptySeats).
+    case EmptySeats of
+        [] -> undefined;
+        _ -> lists:nth(rand:uniform(length(EmptySeats)), EmptySeats)
+    end.
 
 get_blinds_(State) ->
     Seats = State#state.seats,

@@ -29,8 +29,8 @@ websocket_handle({text, <<"join_table ", Id/binary>>}, Req, #state{player=Player
     Reply = ws_util:build_game_state_reply(join_table, Player),
     {reply, {text, Reply}, Req, State};
 websocket_handle({text, <<"sit">>}, Req, #state{player=Player}=State) ->
-    ok = player:sit(Player),
-    Reply = ws_util:build_game_state_reply(sit, Player),
+    Res = player:sit(Player),
+    Reply = ws_util:build_ok_or_error_reply(sit, Res),
     {reply, {text, Reply}, Req, State};
 websocket_handle({text, <<"start_game">>}, Req, #state{player=Player}=State) ->
     Res = player:start_game(Player),

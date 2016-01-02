@@ -88,9 +88,12 @@ handle_event(_Event, StateName, StateData) ->
 	{next_state, StateName, StateData}.
 
 handle_sync_event({sit, Player}, _From, StateName, StateData) ->
-    broadcast_(StateData, {new_player, Player}),
-    seats:join(StateData#state.seats, Player),
-    {reply, ok, StateName, StateData};
+    Reply = seats:join(StateData#state.seats, Player),
+    case Reply of
+        ok -> broadcast_(StateData, {new_player, Player});
+        _ -> ignore
+    end,
+    {reply, Reply, StateName, StateData};
 handle_sync_event({join, Player}, _From, StateName, StateData) ->
     Users = [#user{player=Player}|StateData#state.users],
     broadcast_(StateData, {join, Player}),

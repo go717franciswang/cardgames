@@ -293,9 +293,12 @@ function handle_game_started(res) {
 }
 
 function handle_sit(res) {
-  update_game(res);
-  $sitBtn.hide();
-  $startBtn.show();
+  if (res['status'] == 'ok') {
+    $sitBtn.hide();
+    $startBtn.show();
+  } else if (res['error']) {
+    log('Got error: ' + res['error'] + '.');
+  }
 }
 
 function update_game(res) {
