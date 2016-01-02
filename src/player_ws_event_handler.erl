@@ -37,6 +37,11 @@ handle_event(timeout, State) ->
     State#state.ws ! {reply, update_game},
     State#state.ws ! {reply, ws_util:build_reply(timeout, <<"1">>)},
     {ok, State};
+handle_event({timer, Player, Timeout}, State) ->
+    State#state.ws ! {reply, update_game},
+    Content = jiffy:encode(#{player=>util:pid_to_serializable(Player), timeout=>Timeout}),
+    State#state.ws ! {reply, ws_util:build_reply(timer, Content)},
+    {ok, State};
 handle_event({take_turn, Player, Action}, State) ->
     State#state.ws ! {reply, update_game},
     Content = jiffy:encode(#{player=>util:pid_to_serializable(Player), action=>Action}),

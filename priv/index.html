@@ -172,12 +172,20 @@ function onMessage(e) {
       case 'community_cards':
         handle_community_cards(content);
         break;
+      case 'timer':
+        handle_timer(content);
+        break;
       default:
         console.error('unhandled reply: ' + e.data);
     }
   } else {
     console.error('unhandled reply: ' + e.data);
   }
+}
+
+function handle_timer(res) {
+  var nickname = getNickName(res['player']);
+  startTimer(res['player'], res['timeout']);
 }
 
 function handle_community_cards(cards) {
@@ -250,6 +258,7 @@ function handle_took_turn(res) {
 
 function handle_take_turn(res) {
   var nickname = getNickName(res['player']);
+  stopTimer(res['player']);
   log(nickname + ' chose to ' + res['action'] + '.');
 }
 

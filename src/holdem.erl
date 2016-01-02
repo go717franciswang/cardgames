@@ -151,6 +151,7 @@ start_game_routine_(#state{seats=Seats,timeout=Timeout}=StateData) ->
     ActorSeat = seats:get_preflop_actor(Seats),
     Options = seats:get_available_options(Seats, ActorSeat),
     player:notify(ActorSeat#seat.player, {signal_turn, Options}),
+    broadcast_(StateData, {timer, ActorSeat#seat.player, Timeout}),
     Timer = gen_fsm:start_timer(Timeout, get_timeout_action_(Options)),
     broadcast_(StateData, game_started),
     NewState#state{actor=ActorSeat, stage=preflop, actor_options=Options, timer=Timer}.
@@ -191,6 +192,7 @@ handle_action_(#state{seats=Seats,actor=Actor,stage=Stage,timer=Timer,timeout=Ti
         undefined -> undefined;
         NextActor -> 
             player:notify(NextActor#seat.player, {signal_turn, NewState#state.actor_options}),
+            broadcast_(StateData, {timer, NextActor#seat.player, Timeout}),
             gen_fsm:start_timer(Timeout, get_timeout_action_(NewState#state.actor_options))
     end,
     broadcast_(StateData, {take_turn, Actor#seat.player, Action}),

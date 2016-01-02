@@ -28,14 +28,17 @@ function draw(gameState) {
 
     var seatEnter = seat.enter().append('g').attr('class', 'd3seat').attr('transform', function(seat) {
         var degree = 2*Math.PI/seatCount*(seat['position']-1);
-        var x = Math.cos(degree)*width*0.4+width/2;
-        var y = Math.sin(degree)*height*0.4+height/2;
+        var x = Math.cos(degree)*width*0.35+width/2;
+        var y = Math.sin(degree)*height*0.35+height/2;
         return 'translate('+x+','+y+')';
     });
     seatEnter.append('text').attr('class', 'nickname').attr('text-anchor', 'middle');
     seatEnter.append('text').attr('class', 'money').attr('y', 15).attr('dx', -20).attr('text-anchor', 'middle');
     seatEnter.append('text').attr('class', 'bet').attr('y', 15).attr('dx', 20).attr('text-anchor', 'middle');
     seatEnter.append('text').attr('class', 'cards').attr('y', 30).attr('text-anchor', 'middle');
+    seatEnter.append('rect').attr('class', 'timer')
+        .attr('y', 37).attr('transform', 'translate(-25)').attr('width', 0).attr('height', 3);
+
     seat.select('.nickname').text(function(d) { 
         return d['player'] ? player2nickname[d['player']] : '-';
     });
@@ -49,6 +52,19 @@ function draw(gameState) {
         if (d['player']) console.log('cards', cards2str(d['cards']));
         return d['player'] ? cards2str(d['cards']) : '';
     });
-
+    seat.select('.timer').attr('player', function(d) {
+        return d['player'] ? d['player'] : 'undefined';
+    });
 }
 
+function startTimer(player, timeout) {
+    d3.select('.timer[player="'+player+'"]').attr('width', 50)
+        .transition().duration(timeout).ease('linear').attr('width', 0);
+}
+
+function stopTimer(player) {
+    var timer = d3.select('.timer[player="'+player+'"]');
+    timer.transition();
+    d3.timer.flush();
+    timer.attr('width', 0);
+}
