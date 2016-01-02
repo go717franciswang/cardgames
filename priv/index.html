@@ -5,7 +5,6 @@
 <style>
 #gameSelect { display: none }
 #table { display: none }
-#leaveBtn { display: none }
 #startBtn { display: none }
 body { font-family: "Lucida Console"; font-size: 0.8em; }
 </style>
@@ -22,8 +21,8 @@ body { font-family: "Lucida Console"; font-size: 0.8em; }
   </div>
 </div>
 <div id="table">
-  <button id="sitBtn">Sit</button>
   <button id="leaveBtn">Leave</button>
+  <button id="sitBtn">Sit</button>
   <button id="startBtn">Start</button>
   <div id="container"></div>
   <div id="options">
@@ -113,6 +112,8 @@ function onClose(e) {
   log('You lost connection.');
   $conPanel.show();
   $gameSelect.hide();
+  $sitBtn.show();
+  $startBtn.hide();
   $table.hide();
 
   window.clearInterval(pingTimer);
@@ -191,6 +192,8 @@ function onMessage(e) {
 
 function handle_leave(_) {
   $gameSelect.show();
+  $sitBtn.show();
+  $startBtn.hide();
   $table.hide();
 }
 
@@ -292,7 +295,6 @@ function handle_game_started(res) {
 function handle_sit(res) {
   update_game(res);
   $sitBtn.hide();
-  $leaveBtn.show();
   $startBtn.show();
 }
 
