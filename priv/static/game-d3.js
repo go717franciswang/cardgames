@@ -1,3 +1,6 @@
+var width = $(window).width()*0.95;
+var height = $(window).height()*0.6;
+
 function draw(gameState) {
     var player2nickname = {};
     for (var i = 0; i < gameState['users'].length; i++) {
@@ -5,8 +8,6 @@ function draw(gameState) {
         player2nickname[user['player']] = user['nickname'];
     }
 
-    var width = 300;
-    var height = 200;
     var seatCount = gameState['seats'].length;
 
     var svg = d3.select('#container').selectAll('#game').data([gameState]);
@@ -33,11 +34,11 @@ function draw(gameState) {
         return 'translate('+x+','+y+')';
     });
     seatEnter.append('text').attr('class', 'nickname').attr('text-anchor', 'middle');
-    seatEnter.append('text').attr('class', 'money').attr('y', 15).attr('dx', -20).attr('text-anchor', 'middle');
-    seatEnter.append('text').attr('class', 'bet').attr('y', 15).attr('dx', 20).attr('text-anchor', 'middle');
-    seatEnter.append('text').attr('class', 'cards').attr('y', 30).attr('text-anchor', 'middle');
+    seatEnter.append('text').attr('class', 'money').attr('y', height*0.05).attr('dx', -width*0.05).attr('text-anchor', 'middle');
+    seatEnter.append('text').attr('class', 'bet').attr('y', height*0.05).attr('dx', width*0.05).attr('text-anchor', 'middle');
+    seatEnter.append('text').attr('class', 'cards').attr('y', height*0.1).attr('text-anchor', 'middle');
     seatEnter.append('rect').attr('class', 'timer')
-        .attr('y', 35).attr('transform', 'translate(-25)').attr('width', 0).attr('height', 3);
+        .attr('y', height*0.13).attr('transform', 'translate(-'+width*0.07+')').attr('width', 0).attr('height', 3);
 
     seat.select('.nickname').text(function(d) { 
         return d['player'] ? player2nickname[d['player']] : '-';
@@ -57,7 +58,7 @@ function draw(gameState) {
 }
 
 function startTimer(player, timeout) {
-    d3.select('.timer[player="'+player+'"]').attr('width', 50)
+    d3.select('.timer[player="'+player+'"]').attr('width', width*0.14)
         .transition().duration(timeout).ease('linear').attr('width', 0);
 }
 
