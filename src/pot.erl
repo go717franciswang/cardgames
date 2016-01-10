@@ -1,5 +1,6 @@
 -module(pot).
--export([build_pots/1, merge_pots/2, split_single_player_pots/1, round_money/1]).
+-export([build_pots/1, merge_pots/2, split_single_player_pots/1, round_money/1,
+    remove_player/2]).
 -include("records.hrl").
 
 build_pots([]) -> [];
@@ -19,15 +20,23 @@ build_pots(Sorted, MoneyPerPerson) ->
         [{NewMoneyPerPerson,_}|_] -> [Pot|build_pots(NewSorted, NewMoneyPerPerson)]
     end.
 
-merge_pots(Pots1, Pots2) ->
+merge_pots(Pots1, Pots2) -> merge_pots(Pots1++Pots2).
+merge_pots(Pots) ->
     lists:foldl(
-        fun(#pot{money=M2,eligible_ids=Ids}=P, Pots) ->
-                case lists:keyfind(Ids, #pot.eligible_ids, Pots) of
-                    false -> lists:keystore(Ids, #pot.eligible_ids, Pots, P);
+        fun(#pot{money=M2,eligible_ids=Ids}=P, Ps) ->
+                case lists:keyfind(Ids, #pot.eligible_ids, Ps) of
+                    false -> lists:keystore(Ids, #pot.eligible_ids, Ps, P);
                     #pot{money=M1} -> 
-                        lists:keystore(Ids, #pot.eligible_ids, Pots, P#pot{money=round_money(M1+M2)})
+                        lists:keystore(Ids, #pot.eligible_ids, Ps, P#pot{money=round_money(M1+M2)})
                 end
-        end, Pots1, Pots2).
+        end, [], Pots).
+
+remove_player(Pots, PlayerId) ->
+    NewPots = lists:map(
+        fun(#pot{eligible_ids=Ids}=P) ->
+                P#pot{eligible_ids=Ids--[PlayerId]}
+        end, Pots),
+    merge_pots(NewPots).
     
 split_single_player_pots(Pots) ->
     {[P || P <- Pots, length(P#pot.eligible_ids) == 1],

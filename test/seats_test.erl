@@ -66,14 +66,14 @@ place_bet_test() ->
     seats:place_bet(Seats, S2, 2),
 
     [NS1, NS2] = seats:get_nonempty_seats(Seats),
-    ?assertEqual(1, NS1#seat.bet),
-    ?assertEqual(2, NS2#seat.bet),
+    ?assertEqual(1.0, NS1#seat.bet),
+    ?assertEqual(2.0, NS2#seat.bet),
 
     seats:place_bet(Seats, S1, 2),
     seats:place_bet(Seats, S2, 3),
     [NS1_, NS2_] = seats:get_nonempty_seats(Seats),
-    ?assertEqual(2, NS1_#seat.bet),
-    ?assertEqual(3, NS2_#seat.bet).
+    ?assertEqual(2.0, NS1_#seat.bet),
+    ?assertEqual(3.0, NS2_#seat.bet).
 
 all_in_test() -> 
     {ok, Seats} = seats:start_link(6),
@@ -114,8 +114,8 @@ handle_action_call_test() ->
     seats:handle_action(Seats, S2, call),
 
     [NS1, NS2] = seats:show_active_seats(Seats),
-    ?assertEqual(1, NS1#seat.bet),
-    ?assertEqual(1, NS2#seat.bet).
+    ?assertEqual(1.0, NS1#seat.bet),
+    ?assertEqual(1.0, NS2#seat.bet).
 
 handle_action_raise_test() ->
     {ok, Seats} = seats:start_link(6),
@@ -127,7 +127,7 @@ handle_action_raise_test() ->
     seats:handle_action(Seats, S2, raise),
 
     [NS1, NS2] = seats:show_active_seats(Seats),
-    ?assertEqual(1, NS1#seat.bet),
+    ?assertEqual(1.0, NS1#seat.bet),
     ?assertEqual(1.1, NS2#seat.bet).
 
 is_betting_complete_test() ->

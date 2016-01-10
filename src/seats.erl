@@ -150,7 +150,8 @@ handle_call({handle_action, Actor, check}, _From, State) ->
     {reply, ok, NewState};
 handle_call({handle_action, Actor, fold}, _From, State) ->
     NewState = log_action_(State, Actor, fold),
-    {reply, ok, NewState};
+    NewPots = pot:remove_player(NewState#state.pots, Actor#seat.position),
+    {reply, ok, NewState#state{pots=NewPots}};
 handle_call(is_betting_complete, _From, State) ->
     Seats = get_active_seats_(State),
     CallAmount = get_call_amount_(State),
