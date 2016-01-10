@@ -47,7 +47,8 @@ function draw(gameState) {
     });
 
     seat.select('.nickname').text(function(d) { 
-        return d['player'] ? player2nickname[d['player']] : '-';
+        var dealer = d['position'] == gameState['dealer_button_pos'] ? "\uD83D\uDC81" : '';
+        return d['player'] ? dealer + ' ' + player2nickname[d['player']] : '-';
     });
     seat.select('.money').text(function(d) { 
         return d['player'] ? d['money'] : '';
