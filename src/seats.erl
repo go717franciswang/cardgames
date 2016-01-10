@@ -313,7 +313,7 @@ place_bet_(State, #seat{position=Pos}, BetAmount) ->
     % use position to get the most current seat data in case seat in the
     % argument is out-of-date
     Seat = lists:keyfind(Pos, #seat.position, State#state.seats),
-    NewSeat = Seat#seat{bet=BetAmount},
+    NewSeat = Seat#seat{bet=pot:round_money(BetAmount)},
     NewSeats = lists:keystore(Pos, #seat.position, State#state.seats, NewSeat),
     State#state{seats=NewSeats}.
 
