@@ -4,6 +4,12 @@ var suit2str = {
     'diamond': '\u2666',
     'club': '\u2663'
 };
+var suit2class = {
+    'spade': 'black',
+    'heart': 'red',
+    'diamond': 'red',
+    'club': 'black'
+};
 var rank2str = {
     'two': '2',
     'three': '3',
@@ -22,10 +28,12 @@ var rank2str = {
 
 function card2str(card) {
     if (card == 'unknown') return '?';
-    return rank2str[card['rank']] + suit2str[card['suit']];
+    return rank2str[card['rank']] 
+        + '<span class="'+suit2class[card['suit']]+'">' 
+        + suit2str[card['suit']] + '</span>';
 }
 
 function cards2str(cards) {
-    return cards.map(card2str).join(' ');
+    return cards.map(card2str).join('');
 }
 

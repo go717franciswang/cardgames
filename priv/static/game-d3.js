@@ -15,9 +15,10 @@ function draw(gameState) {
     svgEnter.append('text').attr('class', 'cc').attr('x', width/2).attr('y', height*0.55).attr('text-anchor', 'middle');
     svgEnter.append('text').attr('class', 'pots').attr('x', width/2).attr('y', height*0.45).attr('text-anchor', 'middle');
 
-    svg.select('text.cc').text(function(d) {
-        return 'CC: ' + cards2str(d['community_cards']);
+    var ccard = svg.select('text.cc').selectAll('.card').data(function(d) {
+        return d['community_cards'];
     });
+    handle_card(ccard);
 
     svg.select('text.pots').text(function(d) {
         return 'Pots: ' + d['pots'].map(function(p) { return p['money'] }).join(' ');
@@ -49,12 +50,31 @@ function draw(gameState) {
     seat.select('.bet').text(function(d) { 
         return d['player'] ? Math.min(d['money'],d['bet']) : '';
     });
-    seat.select('.cards').text(function(d) { 
-        return d['player'] ? cards2str(d['cards']) : '';
+    var card = seat.select('.cards').selectAll('.card').data(function(d) { 
+        return d['cards'] ? d['cards'] : [] 
     });
+    handle_card(card);
     seat.select('.timer').attr('player', function(d) {
         return d['player'] ? d['player'] : 'undefined';
     });
+}
+
+function handle_card(card) {
+    var cardEnterContainer = card.enter().append('tspan').attr('class', 'card');
+    cardEnterContainer.append('tspan').attr('class', 'rank');
+    cardEnterContainer.append('tspan').attr('class', 'suit');
+    card.select('.rank').text(function(card) {
+        if (card == 'unknown') return '?';
+        else return rank2str[card['rank']];
+    });
+    card.select('.suit').text(function(card) {
+        if (card == 'unknown') return '';
+        else return suit2str[card['suit']];
+    }).attr('class', function(card) {
+        if (card == 'unknown') return 'suit';
+        else return 'suit ' + suit2class[card['suit']];
+    });
+    card.exit().remove();
 }
 
 function startTimer(player, timeout) {
