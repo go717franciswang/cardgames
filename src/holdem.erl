@@ -68,7 +68,9 @@ game_in_progess({take_turn,Action}, _From, #state{actor_options=Options}=State) 
     {reply, Reply, NewStateName, NewState};
 game_in_progess({show_cards, Player}, _From, StateData) ->
     Cards = seats:show_cards_from_player(StateData#state.seats, Player),
-    {reply, Cards, game_in_progess, StateData}.
+    {reply, Cards, game_in_progess, StateData};
+game_in_progess(_, _, StateData) ->
+    {reply, ignored, game_in_progess, StateData}.
 
 game_in_progess({timeout, _Ref, Action}, State) ->
     io:format("last player did not take action in time~n"),
