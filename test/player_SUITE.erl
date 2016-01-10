@@ -165,9 +165,9 @@ testTimeout(Config) ->
     BB = ?config(bb, Config),
     Table = ?config(table, Config),
 
-    ok = holdem:set_timeout(Table, 100),
+    ok = holdem:set_timeout(Table, 200),
     ok = player:take_turn(FirstActor#seat.player, call),
-    timer:sleep(150),
+    timer:sleep(200),
     {error, not_your_turn} = player:take_turn(Dealer#seat.player, raise),
     ok = player:take_turn(SB#seat.player, fold),
     ok = player:take_turn(BB#seat.player, fold),

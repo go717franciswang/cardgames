@@ -41,6 +41,11 @@ function draw(gameState) {
     seatEnter.append('rect').attr('class', 'timer')
         .attr('y', height*0.13).attr('transform', 'translate(-'+width*0.07+')').attr('width', 0).attr('height', 3);
 
+    seat.attr('fill-opacity', function(seat) {
+        if (seat['cards'] == undefined || seat['cards'].length==0) return '0.4';
+        else return '1';
+    });
+
     seat.select('.nickname').text(function(d) { 
         return d['player'] ? player2nickname[d['player']] : '-';
     });

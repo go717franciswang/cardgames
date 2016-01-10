@@ -20,13 +20,17 @@ game_state_to_serializable(#game_state{seats=SS, pots=PS, community_cards=CC, de
         users => [user_to_serializable(U) || U <- US]}.
 
 seat_to_serializable(#seat{position=Pos, player=undefined}) -> #{position=>Pos};
-seat_to_serializable(#seat{position=Pos, player=P, money=M, bet=B, last_action=L, cards=CS}) ->
+seat_to_serializable(#seat{position=Pos, player=P, money=M, bet=B, last_action=L, cards=CS, is_active=A}) ->
     #{position => Pos,
         player => pid_to_serializable(P),
         money => M,
         bet => B,
         last_action => L,
+        is_active => bool_to_serializable(A),
         cards => [card_to_serializable(C) || C <- CS]}.
+
+bool_to_serializable(false) -> 0;
+bool_to_serializable(_) -> 1.
 
 pid_to_serializable(P) -> list_to_binary(pid_to_list(P)).
 
