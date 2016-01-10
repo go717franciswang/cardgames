@@ -151,7 +151,8 @@ handle_call({handle_action, Actor, check}, _From, State) ->
 handle_call({handle_action, Actor, fold}, _From, State) ->
     NewState = log_action_(State, Actor, fold),
     NewPots = pot:remove_player(NewState#state.pots, Actor#seat.position),
-    {reply, ok, NewState#state{pots=NewPots}};
+    NewState2 = remove_cards_(NewState, Actor),
+    {reply, ok, NewState2#state{pots=NewPots}};
 handle_call(is_betting_complete, _From, State) ->
     Seats = get_active_seats_(State),
     CallAmount = get_call_amount_(State),
@@ -350,5 +351,11 @@ distribute_winning_(#state{seats=Seats}=State, [#pot_wins{pot=#pot{money=M},wins
         end, Seats, Plays),
     distribute_winning_(State#state{seats=NewSeats,pots=[]}, PotWins);
 distribute_winning_(State, []) -> State.
+
+remove_cards_(#state{seats=Seats}=State, #seat{position=P}) ->
+    Seat = lists:keyfind(P, #seat.position, Seats),
+    NewSeats = lists:keystore(P, #seat.position, Seats, Seat#seat{cards=[]}),
+    State#state{seats=NewSeats}.
+
 
 
