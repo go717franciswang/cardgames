@@ -309,6 +309,10 @@ function update_game(res) {
   if (res['status'] != 'ok') return;
   gameState = res['game'];
   draw(res['game']);
+  console.log(res['game']);
+  if (res['game'].state_name == 'game_in_progress') {
+    $startBtn.hide();
+  }
 }
 
 function card_to_html(c) {

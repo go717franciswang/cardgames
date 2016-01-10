@@ -8,7 +8,7 @@
 
 %% gen_fsm.
 -export([init/1]).
--export([waiting_for_players/3, waiting_for_players/2, game_in_progess/3, game_in_progess/2]).
+-export([waiting_for_players/3, waiting_for_players/2, game_in_progress/3, game_in_progress/2]).
 -export([handle_event/3]).
 -export([handle_sync_event/4]).
 -export([handle_info/3]).
@@ -47,7 +47,7 @@ init([TableId]) ->
 waiting_for_players(start_game, _From, StateData) ->
     case length(seats:get_nonempty_seats(StateData#state.seats)) of
         N when N < 2 -> {reply, {error, not_enough_players}, waiting_for_players, StateData};
-        _ -> {reply, ok, game_in_progess, start_game_routine_(StateData)}
+        _ -> {reply, ok, game_in_progress, start_game_routine_(StateData)}
     end;
 waiting_for_players(_, _, StateData) ->
     {reply, ignored, waiting_for_players, StateData}.
@@ -55,24 +55,24 @@ waiting_for_players(_, _, StateData) ->
 waiting_for_players({timeout, _Ref, restart}, StateData) ->
     case length(seats:get_nonempty_seats(StateData#state.seats)) of
         N when N < 2 -> {next_state, waiting_for_players, StateData};
-        _ -> {next_state, game_in_progess, start_game_routine_(StateData)}
+        _ -> {next_state, game_in_progress, start_game_routine_(StateData)}
     end.
 
-game_in_progess({take_turn,_}, {Player,_Tag}, #state{actor=Actor}=State) when Player /= Actor#seat.player ->
-    {reply, {error, not_your_turn}, game_in_progess, State};
-game_in_progess({take_turn,Action}, _From, #state{actor_options=Options}=State) ->
+game_in_progress({take_turn,_}, {Player,_Tag}, #state{actor=Actor}=State) when Player /= Actor#seat.player ->
+    {reply, {error, not_your_turn}, game_in_progress, State};
+game_in_progress({take_turn,Action}, _From, #state{actor_options=Options}=State) ->
     {Reply, NewStateName, NewState} = case lists:member(Action, Options) of
-        false -> {{error, invalid_action}, game_in_progess, State};
+        false -> {{error, invalid_action}, game_in_progress, State};
         true -> handle_action_(State, Action)
     end,
     {reply, Reply, NewStateName, NewState};
-game_in_progess({show_cards, Player}, _From, StateData) ->
+game_in_progress({show_cards, Player}, _From, StateData) ->
     Cards = seats:show_cards_from_player(StateData#state.seats, Player),
-    {reply, Cards, game_in_progess, StateData};
-game_in_progess(_, _, StateData) ->
-    {reply, ignored, game_in_progess, StateData}.
+    {reply, Cards, game_in_progress, StateData};
+game_in_progress(_, _, StateData) ->
+    {reply, ignored, game_in_progress, StateData}.
 
-game_in_progess({timeout, _Ref, Action}, State) ->
+game_in_progress({timeout, _Ref, Action}, State) ->
     io:format("last player did not take action in time~n"),
     Player = State#state.actor#seat.player,
     player:notify(Player, timeout),
@@ -119,6 +119,7 @@ handle_sync_event(show_game_state, {Player, _Tag}, StateName,
         #state{seats=Seats,community_cards=CC,users=Users}=StateData) ->
     Dealer = seats:get_dealer(Seats),
     Reply = #game_state{
+        state_name=StateName,
         seats=seats:show_seats(Seats, Player),
         pots=seats:get_pots(Seats),
         community_cards=CC,
@@ -186,7 +187,7 @@ handle_action_(#state{seats=Seats,actor=Actor,stage=Stage,timer=Timer,timeout=Ti
     NewStateName = case NewState#state.stage of
         show_down -> waiting_for_players;
         hand_over -> waiting_for_players;
-        _ -> game_in_progess
+        _ -> game_in_progress
     end,
 
     NewTimer = case NewState#state.actor of

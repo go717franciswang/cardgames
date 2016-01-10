@@ -12,8 +12,11 @@ card_to_serializable(unknown) -> unknown;
 card_to_serializable(#card{suit=S, rank=R}) ->
     #{suit=>S, rank=>R}.
 
-game_state_to_serializable(#game_state{seats=SS, pots=PS, community_cards=CC, dealer_button_pos=D, users=US}) ->
+game_state_to_serializable(#game_state{
+        state_name=SN, seats=SS, pots=PS, community_cards=CC, 
+        dealer_button_pos=D, users=US}) ->
     #{seats => [seat_to_serializable(S) || S <- SS],
+        state_name => SN,
         pots => [pot_to_serializable(P) || P <- PS],
         community_cards => [card_to_serializable(C) || C <- CC],
         dealer_button_pos => D,

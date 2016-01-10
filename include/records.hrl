@@ -33,4 +33,4 @@
 -record(play, {player, hand, cards}).
 
 -record(game_state, {seats=[], pots=[], community_cards=[], 
-        dealer_button_pos, users=[]}).
+        dealer_button_pos, users=[], state_name}).
