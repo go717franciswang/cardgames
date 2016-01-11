@@ -157,11 +157,9 @@ handle_call({handle_action, Actor, fold}, _From, State) ->
     {reply, ok, NewState2#state{pots=NewPots}};
 handle_call(is_betting_complete, _From, State) ->
     Seats = get_active_seats_(State),
-    CallAmount = get_call_amount_(State),
     Reply = lists:all(
         fun(#seat{last_action=fold}) -> true;
-           (#seat{last_action=undefined}) -> false;
-           (#seat{bet=Bet}) -> CallAmount == Bet;
+           (#seat{last_action=check}) -> true;
            (_) -> false
         end, Seats),
     {reply, Reply, State};

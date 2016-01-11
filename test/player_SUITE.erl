@@ -69,6 +69,9 @@ testShowDown(Config) ->
     ok = player:take_turn(Dealer#seat.player, call),
     ok = player:take_turn(SB#seat.player, call),
     ok = player:take_turn(BB#seat.player, check),
+    ok = player:take_turn(FirstActor#seat.player, check),
+    ok = player:take_turn(Dealer#seat.player, check),
+    ok = player:take_turn(SB#seat.player, check),
     
     % flop
     ok = player:take_turn(SB#seat.player, check),

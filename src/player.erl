@@ -77,7 +77,7 @@ in_game(show_game_state, _From, StateData) ->
     {reply, Reply, in_game, StateData}.
 
 handle_event({notify, Event}, StateName, StateData) ->
-    io:format("~p got notification: ~p~n", [self(), Event]),
+    % io:format("~p got notification: ~p~n", [self(), Event]),
     EM = StateData#state.em,
     gen_event:notify(EM, Event),
     {next_state, StateName, StateData};
