@@ -16,7 +16,7 @@
 -export([code_change/4]).
 
 -record(state, {deck, users=[], seats, actor, actor_options=[], community_cards=[], stage,
-        timeout=30000, timer, restart_timer=5000, id
+        timeout=30000, timer, restart_timer=5000, id, max_raises_per_street=4
 }).
 -include("records.hrl").
 
@@ -140,10 +140,11 @@ terminate(_Reason, _StateName, _StateData) ->
 code_change(_OldVsn, StateName, StateData, _Extra) ->
 	{ok, StateName, StateData}.
 
-start_game_routine_(#state{seats=Seats,timeout=Timeout}=StateData) ->
+start_game_routine_(#state{seats=Seats,timeout=Timeout,max_raises_per_street=MR}=StateData) ->
     {ok, Deck} = deck:start_link(),
     NewState = StateData#state{deck=Deck},
     seats:mark_active_players(Seats),
+    seats:set_raises_left(Seats, MR),
     seats:rotate_dealer_button(Seats),
     {SmallBlind, BigBlind} = seats:get_blinds(Seats),
     seats:handle_action(Seats, SmallBlind, small_blind),
@@ -200,7 +201,8 @@ handle_action_(#state{seats=Seats,actor=Actor,stage=Stage,timer=Timer,timeout=Ti
     broadcast_(StateData, {take_turn, Actor#seat.player, Action}),
     {ok, NewStateName, NewState#state{timer=NewTimer}}.
 
-draw_community_cards_(#state{community_cards=CC,deck=Deck,seats=Seats}=State, N, NextStage) ->
+draw_community_cards_(#state{community_cards=CC,deck=Deck,seats=Seats,max_raises_per_street=MR}=State, 
+        N, NextStage) ->
     deck:draw_cards(Deck, 1), % burn card
     NewCC = CC ++ deck:draw_cards(Deck, N),
     io:format("community cards: ~p~n", [NewCC]),
@@ -210,6 +212,7 @@ draw_community_cards_(#state{community_cards=CC,deck=Deck,seats=Seats}=State, N,
         turn -> seats:double_bet_amount(Seats);
         _ -> ignored
     end,
+    seats:set_raises_left(Seats, MR),
     NextActor = seats:get_flop_actor(Seats),
     Options = seats:get_available_options(Seats, NextActor),
     State#state{community_cards=NewCC,stage=NextStage,actor=NextActor,actor_options=Options}.

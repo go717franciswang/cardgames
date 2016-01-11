@@ -11,7 +11,7 @@
         show_cards_from_player/2, is_hand_over/1, get_available_options/2,
         leave/2, drop_broke_players/1, set_money/3, show_down/2, 
         hand_over/1, get_nonfolded_seats/1, mark_active_players/1, get_nonempty_seats/1,
-        double_bet_amount/1]).
+        double_bet_amount/1, set_raises_left/2]).
 
 %% gen_server.
 -export([init/1]).
@@ -21,7 +21,7 @@
 -export([terminate/2]).
 -export([code_change/3]).
 
--record(state, {seats=[], dealer_button_pos=1, blind_amount=0.1, bet_amount=0.1, pots=[]
+-record(state, {seats=[], dealer_button_pos=1, blind_amount=0.1, bet_amount=0.1, pots=[], raises_left=4
 }).
 -include("records.hrl").
 
@@ -62,6 +62,7 @@ get_nonfolded_seats(Pid) -> gen_server:call(Pid, get_nonfolded_seats).
 mark_active_players(Pid) -> gen_server:call(Pid, mark_active_players).
 get_nonempty_seats(Pid) -> gen_server:call(Pid, get_nonempty_seats).
 double_bet_amount(Pid) -> gen_server:call(Pid, double_bet_amount).
+set_raises_left(Pid, Raises) -> gen_server:call(Pid, {set_raises_left, Raises}).
 
 %% gen_server.
 
@@ -131,10 +132,10 @@ handle_call({handle_action, Actor, call}, _From, State) ->
     BetAmount = get_call_amount_(State),
     NewState = log_action_(place_bet_(State, Actor, BetAmount), Actor, call),
     {reply, ok, NewState};
-handle_call({handle_action, Actor, raise}, _From, State) ->
+handle_call({handle_action, Actor, raise}, _From, #state{raises_left=RL}=State) ->
     BetAmount = get_raise_amount_(State),
     NewState = log_action_(place_bet_(State, Actor, BetAmount), Actor, raise),
-    {reply, ok, NewState};
+    {reply, ok, NewState#state{raises_left=RL-1}};
 handle_call({handle_action, Actor, small_blind}, _From, State) ->
     BetAmount = State#state.blind_amount/2,
     NewState = place_bet_(State, Actor, BetAmount),
@@ -155,13 +156,24 @@ handle_call({handle_action, Actor, fold}, _From, State) ->
     NewPots = pot:remove_player(NewState#state.pots, Actor#seat.position),
     NewState2 = handle_fold_(NewState, Actor),
     {reply, ok, NewState2#state{pots=NewPots}};
-handle_call(is_betting_complete, _From, State) ->
+handle_call(is_betting_complete, _From, #state{raises_left=RL}=State) ->
     Seats = get_active_seats_(State),
-    Reply = lists:all(
-        fun(#seat{last_action=fold}) -> true;
-           (#seat{last_action=check}) -> true;
-           (_) -> false
-        end, Seats),
+    CallAmount = get_call_amount_(State),
+    Reply = case RL of
+        0 ->
+            lists:all(
+                fun(#seat{last_action=fold}) -> true;
+                   (#seat{last_action=check}) -> true;
+                   (#seat{bet=Bet}) -> CallAmount == Bet;
+                   (_) -> false
+                end, Seats);
+        _ ->
+            lists:all(
+                fun(#seat{last_action=fold}) -> true;
+                   (#seat{last_action=check}) -> true;
+                   (_) -> false
+                end, Seats)
+    end,
     {reply, Reply, State};
 handle_call(clear_last_action, _From, State) ->
     NewSeats = lists:map(
@@ -197,11 +209,13 @@ handle_call({show_cards_from_player,Player}, _From, #state{seats=Seats}=State) -
 handle_call(is_hand_over, _From, State) ->
     Reply = length(get_nonfolded_seats_(State)) == 1,
     {reply, Reply, State};
-handle_call({get_available_options, Seat}, _From, State) ->
-    Options = case {is_first_bet_(State),is_highest_bet_(State,Seat)} of
-        {true,_} -> [check, bet];
-        {false,true} -> [check, raise];
-        {false,false} -> [call, raise]
+handle_call({get_available_options, Seat}, _From, #state{raises_left=RL}=State) ->
+    Options = case {is_first_bet_(State),is_highest_bet_(State,Seat),RL} of
+        {true,_,_} -> [check, bet];
+        {false,true,0} -> [check];
+        {false,false,0} -> [call];
+        {false,true,_} -> [check, raise];
+        {false,false,_} -> [call, raise]
     end,
     {reply, [fold|Options], State};
 handle_call({leave, Player}, _From, #state{seats=Seats}=State) ->
@@ -264,6 +278,8 @@ handle_call(get_nonempty_seats, _From, State) ->
     {reply, get_nonempty_seats_(State), State};
 handle_call(double_bet_amount, _From, #state{bet_amount=BA}=State) ->
     {reply, ok, State#state{bet_amount=BA*2}};
+handle_call({set_raises_left, Raises}, _From, State) ->
+    {reply, ok, State#state{raises_left=Raises}};
 handle_call(_Request, _From, State) ->
 	{reply, ignored, State}.
 
