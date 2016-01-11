@@ -206,6 +206,10 @@ draw_community_cards_(#state{community_cards=CC,deck=Deck,seats=Seats}=State, N,
     io:format("community cards: ~p~n", [NewCC]),
     seats:clear_last_action(Seats),
     seats:pot_bets(Seats),
+    case NextStage of
+        turn -> seats:double_bet_amount(Seats);
+        _ -> ignored
+    end,
     NextActor = seats:get_flop_actor(Seats),
     Options = seats:get_available_options(Seats, NextActor),
     State#state{community_cards=NewCC,stage=NextStage,actor=NextActor,actor_options=Options}.

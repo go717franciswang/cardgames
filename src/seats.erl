@@ -10,7 +10,8 @@
         pot_bets/1, get_pots/1, prepare_new_game/1,
         show_cards_from_player/2, is_hand_over/1, get_available_options/2,
         leave/2, drop_broke_players/1, set_money/3, show_down/2, 
-        hand_over/1, get_nonfolded_seats/1, mark_active_players/1, get_nonempty_seats/1]).
+        hand_over/1, get_nonfolded_seats/1, mark_active_players/1, get_nonempty_seats/1,
+        double_bet_amount/1]).
 
 %% gen_server.
 -export([init/1]).
@@ -20,7 +21,7 @@
 -export([terminate/2]).
 -export([code_change/3]).
 
--record(state, {seats=[], dealer_button_pos=1, blind_amount=0.1, pots=[]
+-record(state, {seats=[], dealer_button_pos=1, blind_amount=0.1, bet_amount=0.1, pots=[]
 }).
 -include("records.hrl").
 
@@ -60,6 +61,7 @@ hand_over(Pid) -> gen_server:call(Pid, hand_over).
 get_nonfolded_seats(Pid) -> gen_server:call(Pid, get_nonfolded_seats).
 mark_active_players(Pid) -> gen_server:call(Pid, mark_active_players).
 get_nonempty_seats(Pid) -> gen_server:call(Pid, get_nonempty_seats).
+double_bet_amount(Pid) -> gen_server:call(Pid, double_bet_amount).
 
 %% gen_server.
 
@@ -142,7 +144,7 @@ handle_call({handle_action, Actor, big_blind}, _From, State) ->
     NewState = place_bet_(State, Actor, BetAmount),
     {reply, ok, NewState};
 handle_call({handle_action, Actor, bet}, _From, State) ->
-    BetAmount = State#state.blind_amount,
+    BetAmount = State#state.bet_amount,
     NewState = log_action_(place_bet_(State, Actor, BetAmount), Actor, bet),
     {reply, ok, NewState};
 handle_call({handle_action, Actor, check}, _From, State) ->
@@ -188,9 +190,9 @@ handle_call(pot_bets, _From, #state{seats=Seats,pots=Pots}=State) ->
     {reply, ok, State#state{seats=NewSeats,pots=MultiPots}};
 handle_call(get_pots, _From, State) ->
     {reply, State#state.pots, State};
-handle_call(prepare_new_game, _From, #state{seats=Seats}=State) ->
+handle_call(prepare_new_game, _From, #state{seats=Seats, blind_amount=BA}=State) ->
     NewSeats = [Seat#seat{last_action=undefined,cards=[],is_active=false} || Seat <- Seats],
-    {reply, ok, State#state{seats=NewSeats}};
+    {reply, ok, State#state{seats=NewSeats, bet_amount=BA}};
 handle_call({show_cards_from_player,Player}, _From, #state{seats=Seats}=State) ->
     Seat = lists:keyfind(Player, #seat.player, Seats),
     {reply, Seat#seat.cards, State};
@@ -262,6 +264,8 @@ handle_call(mark_active_players, _From, #state{seats=Seats}=State) ->
     {reply, ok, State#state{seats=NewSeats}};
 handle_call(get_nonempty_seats, _From, State) ->
     {reply, get_nonempty_seats_(State), State};
+handle_call(double_bet_amount, _From, #state{bet_amount=BA}=State) ->
+    {reply, ok, State#state{bet_amount=BA*2}};
 handle_call(_Request, _From, State) ->
 	{reply, ignored, State}.
 
@@ -324,7 +328,7 @@ get_call_amount_(State) ->
     lists:max([Seat#seat.bet || Seat <- Seats]).
 
 get_raise_amount_(State) ->
-    get_call_amount_(State) + State#state.blind_amount.
+    get_call_amount_(State) + State#state.bet_amount.
 
 log_action_(State, #seat{position=Pos}, Action) ->
     Seat = lists:keyfind(Pos, #seat.position, State#state.seats),
