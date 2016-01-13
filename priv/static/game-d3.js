@@ -35,8 +35,7 @@ function draw(gameState) {
         return 'translate('+x+','+y+')';
     });
     seatEnter.append('text').attr('class', 'nickname').attr('text-anchor', 'middle');
-    seatEnter.append('text').attr('class', 'money').attr('y', height*0.05).attr('dx', -width*0.05).attr('text-anchor', 'middle');
-    seatEnter.append('text').attr('class', 'bet').attr('y', height*0.05).attr('dx', width*0.05).attr('text-anchor', 'middle');
+    seatEnter.append('text').attr('class', 'moneybet').attr('y', height*0.05).attr('text-anchor', 'middle');
     seatEnter.append('text').attr('class', 'cards').attr('y', height*0.1).attr('text-anchor', 'middle');
     seatEnter.append('rect').attr('class', 'timer')
         .attr('y', height*0.13).attr('transform', 'translate(-'+width*0.07+')').attr('width', 0).attr('height', 3);
@@ -50,11 +49,10 @@ function draw(gameState) {
         var dealer = d['position'] == gameState['dealer_button_pos'] ? "\uD83D\uDC81" : '';
         return d['player'] ? dealer + ' ' + player2nickname[d['player']] : '-';
     });
-    seat.select('.money').text(function(d) { 
-        return d['player'] ? d['money'] : '';
-    });
-    seat.select('.bet').text(function(d) { 
-        return d['player'] ? Math.min(d['money'],d['bet']) : '';
+    seat.select('.moneybet').text(function(d) { 
+        var money = d['player'] ? d['money'] : '';
+        var bet = d['player'] ? Math.min(d['money'],d['bet']) : '';
+        return money + ' ' + bet;
     });
     var card = seat.select('.cards').selectAll('.card').data(function(d) { 
         return d['cards'] ? d['cards'] : [] 
