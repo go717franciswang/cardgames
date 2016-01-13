@@ -163,14 +163,17 @@ handle_call(is_betting_complete, _From, #state{raises_left=RL}=State) ->
         0 ->
             lists:all(
                 fun(#seat{last_action=fold}) -> true;
-                   (#seat{last_action=check}) -> true;
+                   (#seat{last_action=undefined}) -> false;
                    (#seat{bet=Bet}) -> CallAmount == Bet;
                    (_) -> false
                 end, Seats);
         _ ->
             lists:all(
                 fun(#seat{last_action=fold}) -> true;
-                   (#seat{last_action=check}) -> true;
+                   (#seat{last_action=undefined}) -> false;
+                   (#seat{last_action=raise}) -> false; % raiser has chance to re-raise
+                   (#seat{last_action=bet}) -> false; % better has chance to re-raise
+                   (#seat{bet=Bet}) -> CallAmount == Bet;
                    (_) -> false
                 end, Seats)
     end,

@@ -145,8 +145,6 @@ is_betting_complete_test() ->
     seats:handle_action(Seats, S1, call),
     ?assertEqual(false, seats:is_betting_complete(Seats)),
     seats:handle_action(Seats, S2, check),
-    ?assertEqual(false, seats:is_betting_complete(Seats)),
-    seats:handle_action(Seats, S1, check),
     ?assertEqual(true, seats:is_betting_complete(Seats)).
 
 pot_bets_test() ->

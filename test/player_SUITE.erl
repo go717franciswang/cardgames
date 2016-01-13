@@ -71,9 +71,6 @@ testShowDown(Config) ->
     ok = player:take_turn(Dealer#seat.player, call),
     ok = player:take_turn(SB#seat.player, call),
     ok = player:take_turn(BB#seat.player, check),
-    ok = player:take_turn(FirstActor#seat.player, check),
-    ok = player:take_turn(Dealer#seat.player, check),
-    ok = player:take_turn(SB#seat.player, check),
     
     % flop
     ok = player:take_turn(SB#seat.player, check),
@@ -83,15 +80,19 @@ testShowDown(Config) ->
 
     % turn
     ok = player:take_turn(SB#seat.player, check),
+    ok = player:take_turn(BB#seat.player, bet),
+    ok = player:take_turn(FirstActor#seat.player, call),
+    ok = player:take_turn(Dealer#seat.player, call),
+    ok = player:take_turn(SB#seat.player, call),
     ok = player:take_turn(BB#seat.player, check),
-    ok = player:take_turn(FirstActor#seat.player, check),
-    ok = player:take_turn(Dealer#seat.player, check),
 
     % river
-    ok = player:take_turn(SB#seat.player, check),
+    ok = player:take_turn(SB#seat.player, bet),
+    ok = player:take_turn(BB#seat.player, raise),
+    ok = player:take_turn(FirstActor#seat.player, call),
+    ok = player:take_turn(Dealer#seat.player, call),
+    ok = player:take_turn(SB#seat.player, call),
     ok = player:take_turn(BB#seat.player, check),
-    ok = player:take_turn(FirstActor#seat.player, check),
-    ok = player:take_turn(Dealer#seat.player, check),
 
     io:format("current seats: ~p~n", [seats:show_active_seats(Seats)]).
 
@@ -223,9 +224,6 @@ testPotsMergeAfterPlayerFolding(Config) ->
     ok = player:take_turn(Dealer#seat.player, call),
     ok = player:take_turn(SB#seat.player, call),
     ok = player:take_turn(BB#seat.player, check),
-    ok = player:take_turn(FirstActor#seat.player, check),
-    ok = player:take_turn(Dealer#seat.player, check),
-    ok = player:take_turn(SB#seat.player, check),
     
     % flop
     ok = player:take_turn(SB#seat.player, bet),
@@ -234,7 +232,6 @@ testPotsMergeAfterPlayerFolding(Config) ->
     ok = player:take_turn(Dealer#seat.player, fold),
     ok = player:take_turn(SB#seat.player, fold),
     ok = player:take_turn(BB#seat.player, check),
-    ok = player:take_turn(FirstActor#seat.player, check),
 
     % turn
     ok = player:take_turn(BB#seat.player, check),
