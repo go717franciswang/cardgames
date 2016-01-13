@@ -197,7 +197,9 @@ handle_call(pot_bets, _From, #state{seats=Seats,pots=Pots}=State) ->
                 M0 = S#seat.money,
                 lists:keystore(Pos, #seat.position, Ss, S#seat{money=pot:round_money(M0+M1)})
         end, NewSeats0, SinglePots),
-    {reply, ok, State#state{seats=NewSeats,pots=MultiPots}};
+    FoldedPositions = [S#seat.position || S <- Seats, S#seat.last_action == fold],
+    MergedPots2 = lists:foldl(fun(Pos, PS) -> pot:remove_player(PS, Pos) end, MultiPots, FoldedPositions),
+    {reply, ok, State#state{seats=NewSeats,pots=MergedPots2}};
 handle_call(get_pots, _From, State) ->
     {reply, State#state.pots, State};
 handle_call(prepare_new_game, _From, #state{seats=Seats, blind_amount=BA}=State) ->
