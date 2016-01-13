@@ -1,12 +1,14 @@
 -module(player_SUITE).
 -export([all/0, init_per_testcase/2, end_per_testcase/2]).
 -export([testShowDown/1, testHandOver/1, testPlayerLeaveDuringGame/1, testPlayerLeaveDuringGameDuringTurn/1,
-    testPlayerLeaveDuringWait/1, testTimeout/1, testTableAutoDelete/1, testPlayerJoiningDuringGame/1]).
+    testPlayerLeaveDuringWait/1, testTimeout/1, testTableAutoDelete/1, testPlayerJoiningDuringGame/1,
+    testPotsMergeAfterPlayerFolding/1]).
 -include_lib("common_test/include/ct.hrl").
 -include("records.hrl").
 
 all() -> [testShowDown, testHandOver, testPlayerLeaveDuringGame, testPlayerLeaveDuringGameDuringTurn,
-    testPlayerLeaveDuringWait, testTimeout, testTableAutoDelete, testPlayerJoiningDuringGame].
+    testPlayerLeaveDuringWait, testTimeout, testTableAutoDelete, testPlayerJoiningDuringGame,
+    testPotsMergeAfterPlayerFolding].
 
 init_per_testcase(testPlayerLeaveDuringWait, Config) -> Config;
 init_per_testcase(_TestName, Config) ->
@@ -209,3 +211,34 @@ testPlayerJoiningDuringGame(Config) ->
 
     io:format("current seats: ~p~n", [seats:show_active_seats(Seats)]).
 
+testPotsMergeAfterPlayerFolding(Config) ->
+    Seats = ?config(seats, Config),
+    FirstActor = ?config(first_actor, Config),
+    Dealer = ?config(dealer, Config),
+    SB = ?config(sb, Config),
+    BB = ?config(bb, Config),
+ 
+    % preflop
+    ok = player:take_turn(FirstActor#seat.player, call),
+    ok = player:take_turn(Dealer#seat.player, call),
+    ok = player:take_turn(SB#seat.player, call),
+    ok = player:take_turn(BB#seat.player, check),
+    ok = player:take_turn(FirstActor#seat.player, check),
+    ok = player:take_turn(Dealer#seat.player, check),
+    ok = player:take_turn(SB#seat.player, check),
+    
+    % flop
+    ok = player:take_turn(SB#seat.player, bet),
+    ok = player:take_turn(BB#seat.player, raise),
+    ok = player:take_turn(FirstActor#seat.player, call),
+    ok = player:take_turn(Dealer#seat.player, fold),
+    ok = player:take_turn(SB#seat.player, fold),
+    ok = player:take_turn(BB#seat.player, check),
+    ok = player:take_turn(FirstActor#seat.player, check),
+
+    % turn
+    ok = player:take_turn(BB#seat.player, check),
+
+    Pots = seats:get_pots(Seats),
+    io:format("~p~n", [Pots]),
+    1 = length(Pots).
