@@ -202,7 +202,7 @@ handle_call(pot_bets, _From, #state{seats=Seats,pots=Pots}=State) ->
     FoldedPositions = [S#seat.position || S <- Seats, S#seat.last_action == fold],
     MergedPots = lists:foldl(
         fun(Pos, PS) -> pot:remove_player(PS, Pos) end, 
-        Pots++MultiPots, FoldedPositions),
+        pot:merge_pots(Pots, MultiPots), FoldedPositions),
     {reply, ok, State#state{seats=NewSeats,pots=MergedPots}};
 handle_call(get_pots, _From, State) ->
     {reply, State#state.pots, State};
