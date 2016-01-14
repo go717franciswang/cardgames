@@ -243,9 +243,9 @@ handle_call({show_down, CC}, _From, #state{pots=Pots,seats=Seats}=State) ->
         fun(#pot{eligible_ids=Ids}=Pot) ->
                 SS = [lists:keyfind(Pos, #seat.position, Seats) || Pos <- Ids],
                 SH = lists:map(
-                    fun(#seat{cards=Cards,player=P}) ->
+                    fun(#seat{cards=Cards,player=P,position=Pos}) ->
                             {H,FC} = hand:get_highest_hand(Cards++CC),
-                            #play{player=P,hand=H,cards=FC}
+                            #play{position=Pos,player=P,hand=H,cards=FC}
                     end, SS),
                 SHR = lists:sort(fun(#play{hand=HA},#play{hand=HB}) -> hand:is_higher_hand(HA,HB) end, SH),
                 [#play{hand=BH}|_] = SHR,
@@ -259,12 +259,12 @@ handle_call(hand_over, _From, #state{seats=Seats,pots=Pots}=State) ->
     Reply = lists:map(
         fun(#pot{eligible_ids=Ids}=Pot) ->
                 case lists:member(WinId, Ids) of
-                    true -> #pot_wins{pot=Pot, wins=[#play{player=Winner}]};
+                    true -> #pot_wins{pot=Pot, wins=[#play{position=WinId,player=Winner}]};
                     false ->
                         Plays = lists:map(
                             fun(Id) ->
                                     #seat{player=P} = lists:keyfind(Id,#seat.position,Seats),
-                                    #play{player=P}
+                                    #play{position=Id, player=P}
                             end, Ids),
                         #pot_wins{pot=Pot, wins=Plays}
                 end

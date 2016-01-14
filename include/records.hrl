@@ -30,7 +30,7 @@
 
 % hand: best hand of the player
 % cards: the 5 cards that formed the best hand
--record(play, {player, hand, cards}).
+-record(play, {position, player, hand, cards}).
 
 -record(game_state, {seats=[], pots=[], community_cards=[], 
         dealer_button_pos, users=[], state_name}).

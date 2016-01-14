@@ -227,6 +227,8 @@ function handle_pot_wins(res) {
       } else {
         winningPlays.push(nickname);
       }
+
+      animateWinning(win['position'], pot_wins['pot']['money']/pot_wins['wins'].length);
     });
 
     if (winningPlays.length > 1) {

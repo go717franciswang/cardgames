@@ -45,10 +45,11 @@ user_to_serializable(#user{player=P, nickname=N}) ->
 
 hand_to_serializable(#hand{name=N}) -> N.
 
-play_to_serializable(#play{player=P, hand=undefined}) ->
-    #{player => pid_to_serializable(P)};
-play_to_serializable(#play{player=P, hand=H, cards=CS}) ->
+play_to_serializable(#play{player=P, position=Pos, hand=undefined}) ->
+    #{player => pid_to_serializable(P), position => Pos};
+play_to_serializable(#play{player=P, position=Pos, hand=H, cards=CS}) ->
     #{player => pid_to_serializable(P),
+        position => Pos,
         hand => hand_to_serializable(H),
         cards => [card_to_serializable(C) || C <- CS]}.
 
