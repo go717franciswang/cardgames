@@ -785,7 +785,8 @@ pkg_cowboy_description = Small, fast and modular HTTP server.
 pkg_cowboy_homepage = http://ninenines.eu
 pkg_cowboy_fetch = git
 pkg_cowboy_repo = https://github.com/ninenines/cowboy
-pkg_cowboy_commit = master
+# pkg_cowboy_commit = master
+pkg_cowboy_commit = a56d3a6fe54bbbc4b8800b322e4b8eb56a0b1039
 
 PACKAGES += cowdb
 pkg_cowdb_name = cowdb
